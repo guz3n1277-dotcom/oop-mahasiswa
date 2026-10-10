@@ -52,6 +52,10 @@ $data = $mahasiswa->tampilkanHalaman(
 
 <h1>Data Mahasiswa</h1>
 
+<p>
+    <a href="tambah.php">Tambah Mahasiswa</a>
+</p>
+
 <form method="GET" action="index.php">
     <input
         type="text"
