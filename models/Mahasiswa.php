@@ -105,7 +105,27 @@ class Mahasiswa
 
         return mysqli_num_rows($hasil) > 0;
     }
+    public function cari($kataKunci)
+    {
+        $query = "SELECT * FROM mahasiswa
+                WHERE nim LIKE ? OR nama LIKE ?";
 
+        $stmt = mysqli_prepare($this->koneksi, $query);
+
+        $kataKunci = "%" . $kataKunci . "%";
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            "ss",
+            $kataKunci,
+            $kataKunci
+        );
+
+        mysqli_stmt_execute($stmt);
+
+        return mysqli_stmt_get_result($stmt);
+    }
+    
 
 }
 

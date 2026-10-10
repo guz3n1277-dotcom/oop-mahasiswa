@@ -9,7 +9,13 @@ $koneksi = $database->connect();
 
 $mahasiswa = new Mahasiswa($koneksi);
 
-$data = $mahasiswa->tampilkanSemua();
+$kataKunci = trim($_GET['cari'] ?? '');
+
+if ($kataKunci !== '') {
+    $data = $mahasiswa->cari($kataKunci);
+} else {
+    $data = $mahasiswa->tampilkanSemua();
+}
 
 ?>
 
@@ -22,6 +28,19 @@ $data = $mahasiswa->tampilkanSemua();
 <body>
 
 <h1>Data Mahasiswa</h1>
+
+<form method="GET" action="index.php">
+    <input
+        type="text"
+        name="cari"
+        placeholder="Cari NIM atau nama..."
+        value="<?php echo htmlspecialchars($kataKunci); ?>"
+    >
+
+    <button type="submit">Cari</button>
+
+    <a href="index.php">Reset</a>
+</form>
 
 <table border="1" cellpadding="10">
 
