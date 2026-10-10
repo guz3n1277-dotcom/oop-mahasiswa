@@ -1,3 +1,4 @@
+
 <?php
 
 class Mahasiswa
@@ -9,34 +10,46 @@ class Mahasiswa
         $this->koneksi = $koneksi;
     }
 
+    // Menampilkan semua data mahasiswa
     public function tampilkanSemua()
     {
-        $query = "SELECT * FROM mahasiswa";
+        $query = "SELECT * FROM mahasiswa ORDER BY id ASC";
 
         return mysqli_query($this->koneksi, $query);
     }
 
+    // Menambahkan mahasiswa
     public function tambah($nim, $nama, $alamat, $fakultas)
     {
-        $query = "INSERT INTO mahasiswa (nim, nama, alamat, fakultas) VALUES(?, ?, ?, ?)";
+        $query = "INSERT INTO mahasiswa
+                  (nim, nama, alamat, fakultas)
+                  VALUES (?, ?, ?, ?)";
 
         try {
             $stmt = mysqli_prepare($this->koneksi, $query);
 
-            mysqli_stmt_bind_param($stmt,"ssss", $nim,$nama,$alamat, $fakultas);
+            mysqli_stmt_bind_param(
+                $stmt,
+                "ssss",
+                $nim,
+                $nama,
+                $alamat,
+                $fakultas
+            );
+
             return mysqli_stmt_execute($stmt);
-        
+
         } catch (mysqli_sql_exception $e) {
             return false;
         }
-        
     }
 
+    // Mengubah data mahasiswa
     public function ubah($id, $nim, $nama, $alamat, $fakultas)
     {
         $query = "UPDATE mahasiswa
-                SET nim = ?, nama = ?, alamat = ?, fakultas = ?
-                WHERE id = ?";
+                  SET nim = ?, nama = ?, alamat = ?, fakultas = ?
+                  WHERE id = ?";
 
         try {
             $stmt = mysqli_prepare($this->koneksi, $query);
@@ -51,13 +64,14 @@ class Mahasiswa
                 $id
             );
 
-        return mysqli_stmt_execute($stmt);
+            return mysqli_stmt_execute($stmt);
 
-        }catch (mysqli_sql_exception $e) {
+        } catch (mysqli_sql_exception $e) {
             return false;
         }
     }
 
+    // Mengambil satu mahasiswa berdasarkan ID
     public function ambilById($id)
     {
         $query = "SELECT * FROM mahasiswa WHERE id = ?";
@@ -65,14 +79,14 @@ class Mahasiswa
         $stmt = mysqli_prepare($this->koneksi, $query);
 
         mysqli_stmt_bind_param($stmt, "i", $id);
-
         mysqli_stmt_execute($stmt);
 
         $hasil = mysqli_stmt_get_result($stmt);
 
         return mysqli_fetch_assoc($hasil);
-    }    
+    }
 
+    // Menghapus mahasiswa
     public function hapus($id)
     {
         $query = "DELETE FROM mahasiswa WHERE id = ?";
@@ -82,18 +96,27 @@ class Mahasiswa
         mysqli_stmt_bind_param($stmt, "i", $id);
 
         return mysqli_stmt_execute($stmt);
-    }  
-    
+    }
 
+    // Memeriksa apakah NIM sudah digunakan
     public function nimAda($nim, $kecualiId = null)
     {
         if ($kecualiId !== null) {
-            $query = "SELECT id FROM mahasiswa WHERE nim = ? AND id != ?";
+            $query = "SELECT id FROM mahasiswa
+                      WHERE nim = ? AND id != ?";
+
             $stmt = mysqli_prepare($this->koneksi, $query);
 
-            mysqli_stmt_bind_param($stmt, "si", $nim, $kecualiId);
+            mysqli_stmt_bind_param(
+                $stmt,
+                "si",
+                $nim,
+                $kecualiId
+            );
+
         } else {
             $query = "SELECT id FROM mahasiswa WHERE nim = ?";
+
             $stmt = mysqli_prepare($this->koneksi, $query);
 
             mysqli_stmt_bind_param($stmt, "s", $nim);
@@ -105,27 +128,102 @@ class Mahasiswa
 
         return mysqli_num_rows($hasil) > 0;
     }
+
+    // Mencari berdasarkan NIM atau nama
     public function cari($kataKunci)
     {
         $query = "SELECT * FROM mahasiswa
-                WHERE nim LIKE ? OR nama LIKE ?";
+                  WHERE nim LIKE ? OR nama LIKE ?
+                  ORDER BY id ASC";
 
         $stmt = mysqli_prepare($this->koneksi, $query);
 
-        $kataKunci = "%" . $kataKunci . "%";
+        $pola = "%" . $kataKunci . "%";
 
         mysqli_stmt_bind_param(
             $stmt,
             "ss",
-            $kataKunci,
-            $kataKunci
+            $pola,
+            $pola
         );
 
         mysqli_stmt_execute($stmt);
 
         return mysqli_stmt_get_result($stmt);
     }
-    
 
+    // Menghitung total data, termasuk hasil pencarian
+    public function hitungSemua($kataKunci)
+    {
+        if ($kataKunci !== '') {
+            $query = "SELECT COUNT(*) AS total
+                      FROM mahasiswa
+                      WHERE nim LIKE ? OR nama LIKE ?";
+
+            $stmt = mysqli_prepare($this->koneksi, $query);
+
+            $pola = "%" . $kataKunci . "%";
+
+            mysqli_stmt_bind_param(
+                $stmt,
+                "ss",
+                $pola,
+                $pola
+            );
+
+        } else {
+            $query = "SELECT COUNT(*) AS total FROM mahasiswa";
+
+            $stmt = mysqli_prepare($this->koneksi, $query);
+        }
+
+        mysqli_stmt_execute($stmt);
+
+        $hasil = mysqli_stmt_get_result($stmt);
+        $baris = mysqli_fetch_assoc($hasil);
+
+        return (int) $baris['total'];
+    }
+
+    // Mengambil data untuk halaman tertentu
+    public function tampilkanHalaman($kataKunci, $limit, $offset)
+    {
+        if ($kataKunci !== '') {
+            $query = "SELECT * FROM mahasiswa
+                      WHERE nim LIKE ? OR nama LIKE ?
+                      ORDER BY id ASC
+                      LIMIT ? OFFSET ?";
+
+            $stmt = mysqli_prepare($this->koneksi, $query);
+
+            $pola = "%" . $kataKunci . "%";
+
+            mysqli_stmt_bind_param(
+                $stmt,
+                "ssii",
+                $pola,
+                $pola,
+                $limit,
+                $offset
+            );
+
+        } else {
+            $query = "SELECT * FROM mahasiswa
+                      ORDER BY id ASC
+                      LIMIT ? OFFSET ?";
+
+            $stmt = mysqli_prepare($this->koneksi, $query);
+
+            mysqli_stmt_bind_param(
+                $stmt,
+                "ii",
+                $limit,
+                $offset
+            );
+        }
+
+        mysqli_stmt_execute($stmt);
+
+        return mysqli_stmt_get_result($stmt);
+    }
 }
-

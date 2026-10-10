@@ -1,33 +1,57 @@
+
 <?php
 
 include "config/Database.php";
 include "models/Mahasiswa.php";
 
 $database = new Database();
-
 $koneksi = $database->connect();
 
 $mahasiswa = new Mahasiswa($koneksi);
 
+// Mengambil kata kunci pencarian
 $kataKunci = trim($_GET['cari'] ?? '');
 
-if ($kataKunci !== '') {
-    $data = $mahasiswa->cari($kataKunci);
-} else {
-    $data = $mahasiswa->tampilkanSemua();
+// Pengaturan pagination
+$perHalaman = 5;
+$halaman = max(1, (int) ($_GET['halaman'] ?? 1));
+
+// Menghitung jumlah data
+$totalData = $mahasiswa->hitungSemua($kataKunci);
+$totalHalaman = (int) ceil($totalData / $perHalaman);
+
+// Memastikan halaman tidak melebihi jumlah halaman
+if ($totalHalaman > 0 && $halaman > $totalHalaman) {
+    $halaman = $totalHalaman;
 }
+
+// Menghitung posisi awal data
+$offset = ($halaman - 1) * $perHalaman;
+
+// Mengambil data berdasarkan halaman dan pencarian
+$data = $mahasiswa->tampilkanHalaman(
+    $kataKunci,
+    $perHalaman,
+    $offset
+);
 
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Mahasiswa</title>
 </head>
 
 <body>
 
 <h1>Data Mahasiswa</h1>
+
+<p>
+    <a href="tambah.php">Tambah Mahasiswa</a>
+</p>
 
 <form method="GET" action="index.php">
     <input
@@ -38,9 +62,10 @@ if ($kataKunci !== '') {
     >
 
     <button type="submit">Cari</button>
-
     <a href="index.php">Reset</a>
 </form>
+
+<br>
 
 <table border="1" cellpadding="10">
 
@@ -53,31 +78,73 @@ if ($kataKunci !== '') {
         <th>Aksi</th>
     </tr>
 
-    <?php while($row = mysqli_fetch_assoc($data)){ ?>
+    <?php if (mysqli_num_rows($data) > 0) { ?>
 
-    <tr>
-        <td><?php echo $row['id']; ?></td>
-        <td><?php echo htmlspecialchars($row['nim']); ?></td>
-        <td><?php echo htmlspecialchars($row['nama']); ?></td>
-        <td><?php echo htmlspecialchars($row['alamat']); ?></td>
-        <td><?php echo htmlspecialchars($row['fakultas']); ?></td>
+        <?php while ($row = mysqli_fetch_assoc($data)) { ?>
 
-        <td>
-            <a href="edit.php?id=<?php echo $row['id']; ?>">
-                Edit
-            </a>
-            |
-            <a
-                href="hapus.php?id=<?php echo $row['id']; ?>"
-                onclick="return confirm('Yakin ingin menghapus data ini?');">
-                Hapus
-            </a>
-        </td>
-    </tr>
+            <tr>
+                <td><?php echo $row['id']; ?></td>
+                <td><?php echo htmlspecialchars($row['nim']); ?></td>
+                <td><?php echo htmlspecialchars($row['nama']); ?></td>
+                <td><?php echo htmlspecialchars($row['alamat']); ?></td>
+                <td><?php echo htmlspecialchars($row['fakultas']); ?></td>
+
+                <td>
+                    <a href="edit.php?id=<?php echo $row['id']; ?>">
+                        Edit
+                    </a>
+                    |
+                    <a
+                        href="hapus.php?id=<?php echo $row['id']; ?>"
+                        onclick="return confirm('Yakin ingin menghapus data ini?');"
+                    >
+                        Hapus
+                    </a>
+                </td>
+            </tr>
+
+        <?php } ?>
+
+    <?php } else { ?>
+
+        <tr>
+            <td colspan="6">Data mahasiswa tidak ditemukan.</td>
+        </tr>
 
     <?php } ?>
 
 </table>
+
+<div>
+    <p>
+        Total data: <?php echo $totalData; ?> |
+        Halaman <?php echo $totalHalaman > 0 ? $halaman : 0; ?>
+        dari <?php echo $totalHalaman; ?>
+    </p>
+
+    <?php if ($halaman > 1) { ?>
+        <a href="?cari=<?php echo urlencode($kataKunci); ?>&halaman=<?php echo $halaman - 1; ?>">
+            Sebelumnya
+        </a>
+    <?php } ?>
+
+    <?php for ($i = 1; $i <= $totalHalaman; $i++) { ?>
+
+        <a
+            href="?cari=<?php echo urlencode($kataKunci); ?>&halaman=<?php echo $i; ?>"
+            style="<?php echo $i === $halaman ? 'font-weight: bold;' : ''; ?>"
+        >
+            <?php echo $i; ?>
+        </a>
+
+    <?php } ?>
+
+    <?php if ($halaman < $totalHalaman) { ?>
+        <a href="?cari=<?php echo urlencode($kataKunci); ?>&halaman=<?php echo $halaman + 1; ?>">
+            Berikutnya
+        </a>
+    <?php } ?>
+</div>
 
 </body>
 </html>
