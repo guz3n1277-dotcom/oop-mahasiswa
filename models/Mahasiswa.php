@@ -125,7 +125,72 @@ class Mahasiswa
 
         return mysqli_stmt_get_result($stmt);
     }
+
+    public function tampilkanHalaman($kataKunci, $limit, $offset)
+    {
+        if ($kataKunci !== '') {
+            $query = "SELECT * FROM mahasiswa
+                    WHERE nim LIKE ? OR nama LIKE ?
+                    LIMIT ? OFFSET ?";
+
+            $stmt = mysqli_prepare($this->koneksi, $query);
+
+            $pola = "%" . $kataKunci . "%";
+
+            mysqli_stmt_bind_param(
+                $stmt,
+                "ssii",
+                $pola,
+                $pola,
+                $limit,
+                $offset
+            );
+        } else {
+            $query = "SELECT * FROM mahasiswa
+                    LIMIT ? OFFSET ?";
+
+            $stmt = mysqli_prepare($this->koneksi, $query);
+
+            mysqli_stmt_bind_param(
+                $stmt,
+                "ii",
+                $limit,
+                $offset
+            );
+        }
+
+        mysqli_stmt_execute($stmt);
+
+        return mysqli_stmt_get_result($stmt);
+    }
+
     
+    public function hitungSemua($kataKunci)
+    {
+        if ($kataKunci !== '') {
+            $query = "SELECT COUNT(*) AS total
+                    FROM mahasiswa
+                    WHERE nim LIKE ? OR nama LIKE ?";
+
+            $stmt = mysqli_prepare($this->koneksi, $query);
+
+            $pola = "%" . $kataKunci . "%";
+
+            mysqli_stmt_bind_param($stmt, "ss", $pola, $pola);
+        } else {
+            $query = "SELECT COUNT(*) AS total FROM mahasiswa";
+
+            $stmt = mysqli_prepare($this->koneksi, $query);
+        }
+
+        mysqli_stmt_execute($stmt);
+
+        $hasil = mysqli_stmt_get_result($stmt);
+        $baris = mysqli_fetch_assoc($hasil);
+
+        return (int) $baris['total'];
+    }
+
 
 }
 
