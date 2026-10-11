@@ -149,17 +149,18 @@ class MahasiswaController
 
     public function hapus()
     {
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: index.php");
+            exit();
+        }
+        
         if (
             !isset($_SESSION['csrf_token'], $_POST['csrf_token']) ||
             !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
         ) {
             http_response_code(403);
             exit('Permintaan tidak valid. Silakan muat ulang halaman.');
-        }
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: index.php");
-            exit();
         }
 
         $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);

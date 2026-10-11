@@ -58,8 +58,13 @@ if (empty($_SESSION['csrf_token'])) {
             |
             <form action="hapus.php" method="POST"
                 onsubmit="return confirm('Yakin ingin menghapus data ini?');">
+                
                 <input type="hidden" name="id"
                     value="<?php echo (int) $row['id']; ?>">
+
+                <input type="hidden" name="csrf_token"
+                    value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
+
                 <button type="submit">Hapus</button>
             </form>
 
