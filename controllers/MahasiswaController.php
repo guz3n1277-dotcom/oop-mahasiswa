@@ -72,9 +72,19 @@ class MahasiswaController
                 $pesan = 'Semua kolom harus diisi.';
             }
 
-            // Validasi NIM hanya angka
-            elseif (!ctype_digit($nim)) {
-                $pesan = 'NIM harus berupa angka.';
+            // Validasi NIM harus tepat 7 digit
+            elseif (!preg_match('/^[0-9]{7}$/', $nim)) {
+                $pesan = 'NIM harus terdiri dari tepat 7 digit angka.';
+            }
+
+            // Validasi nama minimal 3 karakter
+            elseif (mb_strlen($nama) < 3) {
+                $pesan = 'Nama minimal 3 karakter.';
+            }
+
+            // Validasi alamat minimal 3 karakter
+            elseif (mb_strlen($alamat) < 3) {
+                $pesan = 'Alamat minimal 3 karakter.';
             }
 
             // Validasi NIM duplikat
@@ -153,9 +163,19 @@ class MahasiswaController
                 $pesan = 'Semua kolom harus diisi.';
             }
 
-            // Validasi NIM hanya angka
-            elseif (!ctype_digit($nim)) {
-                $pesan = 'NIM harus berupa angka.';
+            // Validasi NIM harus tepat 7 digit
+            elseif (!preg_match('/^[0-9]{7}$/', $nim)) {
+                $pesan = 'NIM harus terdiri dari tepat 7 digit angka.';
+            }
+
+            // Validasi nama minimal 3 karakter
+            elseif (mb_strlen($nama) < 3) {
+                $pesan = 'Nama minimal 3 karakter.';
+            }
+
+            // Validasi alamat minimal 3 karakter
+            elseif (mb_strlen($alamat) < 3) {
+                $pesan = 'Alamat minimal 3 karakter.';
             }
 
             // NIM boleh sama dengan milik data yang sedang diedit,

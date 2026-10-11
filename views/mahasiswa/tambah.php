@@ -27,6 +27,10 @@
         <input
             type="text"
             name="nim"
+            pattern="[0-9]{7}"
+            minlength="7"
+            maxlength="7"
+            title="NIM harus terdiri dari tepat 7 digit angka"
             value="<?php echo htmlspecialchars($_POST['nim'] ?? ''); ?>"
             required
         >
@@ -36,13 +40,18 @@
         <input
             type="text"
             name="nama"
+            minlength="3"
+            required
             value="<?php echo htmlspecialchars($_POST['nama'] ?? ''); ?>"
             required
         >
         <br><br>
 
         <label>Alamat:</label><br>
-        <textarea name="alamat" required><?php
+        <textarea name="alamat"
+                minlength="3"
+                required
+        required><?php
             echo htmlspecialchars($_POST['alamat'] ?? '');
         ?></textarea>
         <br><br>
