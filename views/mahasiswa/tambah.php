@@ -16,6 +16,13 @@
     <?php } ?>
 
     <form method="POST" action="tambah.php">
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>"
+        >
+            <!-- Input NIM, nama, alamat, dan fakultas tetap seperti semula -->
+
         <label>NIM:</label><br>
         <input
             type="text"
@@ -41,12 +48,31 @@
         <br><br>
 
         <label>Fakultas:</label><br>
-        <input
-            type="text"
-            name="fakultas"
-            value="<?php echo htmlspecialchars($_POST['fakultas'] ?? ''); ?>"
-            required
-        >
+        <select name="fakultas" required>
+            <option value="">-- Pilih Fakultas --</option>
+
+            <?php
+            $daftarFakultas = [
+                'Teknik',
+                'Ekonomi dan Bisnis',
+                'Filkom',
+                'Psikologi',
+                'Keguruan dan Ilmu Pendidikan'
+            ];
+
+            foreach ($daftarFakultas as $fakultasPilihan) {
+                $terpilih = (($_POST['fakultas'] ?? '') === $fakultasPilihan)
+                    ? 'selected'
+                    : '';
+
+                echo '<option value="' .
+                    htmlspecialchars($fakultasPilihan, ENT_QUOTES, 'UTF-8') .
+                    '" ' . $terpilih . '>' .
+                    htmlspecialchars($fakultasPilihan, ENT_QUOTES, 'UTF-8') .
+                    '</option>';
+            }
+            ?>
+        </select>
         <br><br>
 
         <button type="submit" name="simpan">Simpan</button>

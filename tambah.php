@@ -1,6 +1,12 @@
 
 <?php
 
+session_start();
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 include "config/Database.php";
 include "models/Mahasiswa.php";
 include "controllers/MahasiswaController.php";

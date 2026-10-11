@@ -1,6 +1,8 @@
 
 <?php
 
+session_start();
+
 include "config/Database.php";
 include "models/Mahasiswa.php";
 include "controllers/MahasiswaController.php";
