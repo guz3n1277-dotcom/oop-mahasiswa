@@ -23,7 +23,7 @@ if (empty($_SESSION['csrf_token'])) {
         type="text"
         name="cari"
         placeholder="Cari NIM atau nama..."
-        value="<?php echo htmlspecialchars($kataKunci); ?>"
+        value="<?php echo htmlspecialchars($kataKunci, ENT_QUOTES, 'UTF-8'); ?>"
     >
 
     <button type="submit">Cari</button>
@@ -45,20 +45,20 @@ if (empty($_SESSION['csrf_token'])) {
     <?php while($row = mysqli_fetch_assoc($data)){ ?>
 
     <tr>
-        <td><?php echo $row['id']; ?></td>
-        <td><?php echo htmlspecialchars($row['nim']); ?></td>
-        <td><?php echo htmlspecialchars($row['nama']); ?></td>
-        <td><?php echo htmlspecialchars($row['alamat']); ?></td>
-        <td><?php echo htmlspecialchars($row['fakultas']); ?></td>
+        <td><?php echo (int) $row['id']; ?></td>
+        <td><?php echo htmlspecialchars($row['nim'], ENT_QUOTES, 'UTF-8'); ?></td>
+        <td><?php echo htmlspecialchars($row['nama'], ENT_QUOTES, 'UTF-8'); ?></td>
+        <td><?php echo htmlspecialchars($row['alamat'], ENT_QUOTES, 'UTF-8'); ?></td>
+        <td><?php echo htmlspecialchars($row['fakultas'], ENT_QUOTES, 'UTF-8'); ?></td>
 
         <td>
-            <a href="edit.php?id=<?php echo $row['id']; ?>">
+            <a href="edit.php?id=<?php echo (int) $row['id']; ?>">
                 Edit
             </a>
             |
             <form action="hapus.php" method="POST"
                 onsubmit="return confirm('Yakin ingin menghapus data ini?');">
-                
+
                 <input type="hidden" name="id"
                     value="<?php echo (int) $row['id']; ?>">
 

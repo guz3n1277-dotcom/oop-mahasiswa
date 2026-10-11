@@ -11,7 +11,7 @@
 
     <?php if ($pesan !== '') { ?>
         <p style="color: red;">
-            <?php echo htmlspecialchars($pesan); ?>
+            <?php echo htmlspecialchars($pesan, ENT_QUOTES, 'UTF-8'); ?>
         </p>
     <?php } ?>
 
@@ -27,19 +27,19 @@
         <!-- Input NIM, nama, alamat, dan fakultas tetap seperti semula -->
         <label>NIM:</label><br>
         <input type="text" name="nim"
-            value="<?php echo htmlspecialchars($dataMahasiswa['nim']); ?>"
+            value="<?php echo htmlspecialchars($dataMahasiswa['nim'], ENT_QUOTES, 'UTF-8'); ?>"
             required>
         <br><br>
 
         <label>Nama:</label><br>
         <input type="text" name="nama"
-            value="<?php echo htmlspecialchars($dataMahasiswa['nama']); ?>"
+            value="<?php echo htmlspecialchars($dataMahasiswa['nama'], ENT_QUOTES, 'UTF-8'); ?>"
             required>
         <br><br>
 
         <label>Alamat:</label><br>
         <textarea name="alamat" required><?php
-            echo htmlspecialchars($dataMahasiswa['alamat']);
+            echo htmlspecialchars($dataMahasiswa['alamat'], ENT_QUOTES, 'UTF-8');
         ?></textarea>
         <br><br>
 

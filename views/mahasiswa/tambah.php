@@ -11,7 +11,7 @@
 
     <?php if ($pesan !== '') { ?>
         <p style="color: red;">
-            <?php echo htmlspecialchars($pesan); ?>
+            <?php echo htmlspecialchars($pesan, ENT_QUOTES, 'UTF-8'); ?>
         </p>
     <?php } ?>
 
@@ -31,7 +31,7 @@
             minlength="7"
             maxlength="7"
             title="NIM harus terdiri dari tepat 7 digit angka"
-            value="<?php echo htmlspecialchars($_POST['nim'] ?? ''); ?>"
+            value="<?php echo htmlspecialchars($_POST['nim'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
             required
         >
         <br><br>
@@ -42,17 +42,13 @@
             name="nama"
             minlength="3"
             required
-            value="<?php echo htmlspecialchars($_POST['nama'] ?? ''); ?>"
-            required
+            value="<?php echo htmlspecialchars($_POST['nama'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
         >
         <br><br>
 
         <label>Alamat:</label><br>
-        <textarea name="alamat"
-                minlength="3"
-                required
-        required><?php
-            echo htmlspecialchars($_POST['alamat'] ?? '');
+        <textarea name="alamat" minlength="3" required><?php
+            echo htmlspecialchars($_POST['alamat'] ?? '', ENT_QUOTES, 'UTF-8');
         ?></textarea>
         <br><br>
 
