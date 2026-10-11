@@ -149,7 +149,20 @@ class MahasiswaController
 
     public function hapus()
     {
-        $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+        if (
+            !isset($_SESSION['csrf_token'], $_POST['csrf_token']) ||
+            !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+        ) {
+            http_response_code(403);
+            exit('Permintaan tidak valid. Silakan muat ulang halaman.');
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: index.php");
+            exit();
+        }
+
+        $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
 
         if (!$id || $id < 1) {
             header("Location: index.php");
@@ -170,6 +183,7 @@ class MahasiswaController
 
         die("Data mahasiswa gagal dihapus.");
     }
+
 
 
 }

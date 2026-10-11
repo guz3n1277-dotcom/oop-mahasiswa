@@ -1,3 +1,8 @@
+<?php
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+?>
 
 <!DOCTYPE html>
 <html>
@@ -51,11 +56,13 @@
                 Edit
             </a>
             |
-            <a
-                href="hapus.php?id=<?php echo $row['id']; ?>"
-                onclick="return confirm('Yakin ingin menghapus data ini?');">
-                Hapus
-            </a>
+            <form action="hapus.php" method="POST"
+                onsubmit="return confirm('Yakin ingin menghapus data ini?');">
+                <input type="hidden" name="id"
+                    value="<?php echo (int) $row['id']; ?>">
+                <button type="submit">Hapus</button>
+            </form>
+
         </td>
     </tr>
 
