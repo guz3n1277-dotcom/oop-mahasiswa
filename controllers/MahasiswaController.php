@@ -48,6 +48,7 @@ class MahasiswaController
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
+            // Validasi token CSRF
             if (
                 !isset($_SESSION['csrf_token'], $_POST['csrf_token']) ||
                 !is_string($_POST['csrf_token']) ||
@@ -57,10 +58,28 @@ class MahasiswaController
                 exit('Permintaan tidak valid. Silakan muat ulang halaman.');
             }
 
-            $nim      = trim($_POST['nim'] ?? '');
-            $nama     = trim($_POST['nama'] ?? '');
-            $alamat   = trim($_POST['alamat'] ?? '');
-            $fakultas = trim($_POST['fakultas'] ?? '');
+            // Ambil input
+            $nim      = $_POST['nim'] ?? '';
+            $nama     = $_POST['nama'] ?? '';
+            $alamat   = $_POST['alamat'] ?? '';
+            $fakultas = $_POST['fakultas'] ?? '';
+
+            // Pastikan seluruh input berupa string
+            if (
+                !is_string($nim) ||
+                !is_string($nama) ||
+                !is_string($alamat) ||
+                !is_string($fakultas)
+            ) {
+                http_response_code(400);
+                exit('Format input tidak valid.');
+            }
+
+            // Bersihkan spasi di awal dan akhir
+            $nim      = trim($nim);
+            $nama     = trim($nama);
+            $alamat   = trim($alamat);
+            $fakultas = trim($fakultas);
 
             // Validasi kolom kosong
             if (
@@ -148,10 +167,25 @@ class MahasiswaController
             exit('Permintaan tidak valid. Silakan muat ulang halaman.');
         }
 
-            $nim      = trim($_POST['nim'] ?? '');
-            $nama     = trim($_POST['nama'] ?? '');
-            $alamat   = trim($_POST['alamat'] ?? '');
-            $fakultas = trim($_POST['fakultas'] ?? '');
+            $nim      = $_POST['nim'] ?? '';
+            $nama     = $_POST['nama'] ?? '';
+            $alamat   = $_POST['alamat'] ?? '';
+            $fakultas = $_POST['fakultas'] ?? '';
+
+            if (
+                !is_string($nim) ||
+                !is_string($nama) ||
+                !is_string($alamat) ||
+                !is_string($fakultas)
+            ) {
+                http_response_code(400);
+                exit('Format input tidak valid.');
+            }
+
+            $nim      = trim($nim);
+            $nama     = trim($nama);
+            $alamat   = trim($alamat);
+            $fakultas = trim($fakultas);
 
             // Validasi kolom kosong
             if (
