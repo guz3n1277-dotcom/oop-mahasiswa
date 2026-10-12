@@ -1,7 +1,7 @@
 
 <?php
 
-session_start();
+require_once __DIR__ . '/config/auth.php';
 
 include "config/Database.php";
 include "models/Mahasiswa.php";

@@ -15,6 +15,20 @@ if (empty($_SESSION['csrf_token'])) {
 <h1>Data Mahasiswa</h1>
 
 <p>
+    Login sebagai:
+    <?php echo htmlspecialchars($_SESSION['username'], ENT_QUOTES, 'UTF-8'); ?>
+</p>
+
+<form method="POST" action="logout.php">
+    <input
+        type="hidden"
+        name="csrf_token"
+        value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>"
+    >
+    <button type="submit">Logout</button>
+</form>
+
+<p>
     <a href="tambah.php">Tambah Mahasiswa</a>
 </p>
 
