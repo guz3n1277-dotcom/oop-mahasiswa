@@ -4,6 +4,7 @@
 require_once __DIR__ . '/config/session.php';
 require_once __DIR__ . '/config/Database.php';
 require_once __DIR__ . '/models/SecurityLog.php';
+require_once __DIR__ . '/models/LoginRateLimit.php';
 
 // Jika sudah login, langsung ke halaman utama cd /c/xampp/htdocs/LatihanPHP/oop-mahasiswa
 if (isset($_SESSION['user_id'])) {
@@ -11,7 +12,7 @@ if (isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Buat token CSRF untuk formulir login
+// Buat token CSRF
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -30,73 +31,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $username = $_POST['username'] ?? '';
         $password = $_POST['password'] ?? '';
 
-        if (is_string($username)) {
-            $username = trim($username);
-        }
         if (
             !is_string($username) ||
-            !is_string($password) ||
-            $username === '' ||
-            $password === ''
+            !is_string($password)
         ) {
-            $pesan = 'Username dan password wajib diisi.';
+            $pesan = 'Format input tidak valid.';
         } else {
-            $database = new Database();
-            $koneksi = $database->connect();
+            $username = trim($username);
 
-            $stmt = mysqli_prepare(
-                $koneksi,
-                'SELECT id, username, password, role
-                 FROM users
-                 WHERE username = ?
-                 LIMIT 1'
-            );
+            if ($username === '' || $password === '') {
+                $pesan = 'Username dan password wajib diisi.';
+            } elseif (strlen($username) > 50) {
+                $pesan = 'Username tidak valid.';
+            } else {
+                $database = new Database();
+                $koneksi = $database->connect();
 
-            mysqli_stmt_bind_param($stmt, 's', $username);
-            mysqli_stmt_execute($stmt);
+                $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                $rateLimit = new LoginRateLimit($koneksi);
 
-            $hasil = mysqli_stmt_get_result($stmt);
-            $user = mysqli_fetch_assoc($hasil);
+                // Periksa pembatasan SEBELUM memeriksa password
+                if ($rateLimit->diblokir($username, $ip)) {
+                    $pesan = 'Terlalu banyak percobaan login. Coba lagi setelah 15 menit.';
+                } else {
+                    $stmt = mysqli_prepare(
+                        $koneksi,
+                        'SELECT id, username, password, role
+                         FROM users
+                         WHERE username = ?
+                         LIMIT 1'
+                    );
 
-            if (
-                $user &&
-                password_verify($password, $user['password'])
-            ) {
-                // Ganti ID session setelah login berhasil
-                session_regenerate_id(true);
+                    if (!$stmt) {
+                        mysqli_close($koneksi);
+                        error_log('Query login gagal disiapkan.');
+                        http_response_code(500);
+                        exit('Terjadi kesalahan sistem. Silakan coba lagi.');
+                    }
 
-                $_SESSION['user_id'] = (int) $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['role'] = $user['role'];
+                    mysqli_stmt_bind_param($stmt, 's', $username);
+                    mysqli_stmt_execute($stmt);
 
-                // Token lama tidak digunakan lagi
-                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+                    $hasil = mysqli_stmt_get_result($stmt);
+                    $user = mysqli_fetch_assoc($hasil);
 
-                //catat login berhasil
-                $securityLog = new SecurityLog($koneksi);
-                $securityLog->catat(
-                    $user['username'],
-                    'login_berhasil'
-                );
+                    if (
+                        $user &&
+                        password_verify($password, $user['password'])
+                    ) {
+                        // Login berhasil: reset hitungan kegagalan
+                        $rateLimit->reset($username, $ip);
 
-                mysqli_stmt_close($stmt);
+                        session_regenerate_id(true);
+
+                        $_SESSION['user_id'] = (int) $user['id'];
+                        $_SESSION['username'] = $user['username'];
+                        $_SESSION['role'] = $user['role'];
+                        $_SESSION['csrf_token'] =
+                            bin2hex(random_bytes(32));
+
+                        $securityLog = new SecurityLog($koneksi);
+                        $securityLog->catat(
+                            $user['username'],
+                            'login_berhasil'
+                        );
+
+                        mysqli_stmt_close($stmt);
+                        mysqli_close($koneksi);
+
+                        header('Location: index.php');
+                        exit;
+                    }
+
+                    // Login gagal: catat percobaan
+                    $rateLimit->gagal($username, $ip);
+
+                    $securityLog = new SecurityLog($koneksi);
+                    $securityLog->catat(
+                        $username,
+                        'login_gagal'
+                    );
+
+                    $pesan = 'Username atau password salah.';
+
+                    mysqli_stmt_close($stmt);
+                }
+
                 mysqli_close($koneksi);
-
-                header('Location: index.php');
-                exit;
             }
-
-            $pesan = 'Username atau password salah.';
-            
-            //catat llogin salah            
-            $securityLog = new SecurityLog($koneksi);
-
-            $securityLog->catat(
-                is_string($username) ? $username : 'input_tidak_valid',
-                'login_gagal'
-            );
-            mysqli_stmt_close($stmt);
-            mysqli_close($koneksi);
         }
     }
 }
