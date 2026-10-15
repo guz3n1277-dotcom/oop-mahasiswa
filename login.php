@@ -1,19 +1,9 @@
 
 <?php
-$isHttps = !empty($_SERVER['HTTPS']) &&
-           $_SERVER['HTTPS'] !== 'off';
-
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path' => '/',
-    'secure' => $isHttps,
-    'httponly' => true,
-    'samesite' => 'Lax'
-]);
 
 require_once __DIR__ . '/config/session.php';
-
 require_once __DIR__ . '/config/Database.php';
+require_once __DIR__ . '/models/SecurityLog.php';
 
 // Jika sudah login, langsung ke halaman utama cd /c/xampp/htdocs/LatihanPHP/oop-mahasiswa
 if (isset($_SESSION['user_id'])) {
@@ -82,6 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Token lama tidak digunakan lagi
                 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 
+                //catat login berhasil
+                $securityLog = new SecurityLog($koneksi);
+                $securityLog->catat(
+                    $user['username'],
+                    'login_berhasil'
+                );
+
                 mysqli_stmt_close($stmt);
                 mysqli_close($koneksi);
 
@@ -90,7 +87,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $pesan = 'Username atau password salah.';
+            
+            //catat llogin salah            
+            $securityLog = new SecurityLog($koneksi);
 
+            $securityLog->catat(
+                is_string($username) ? $username : 'input_tidak_valid',
+                'login_gagal'
+            );
             mysqli_stmt_close($stmt);
             mysqli_close($koneksi);
         }
