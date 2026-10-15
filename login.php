@@ -1,8 +1,19 @@
 
 <?php
-session_start();
+$isHttps = !empty($_SERVER['HTTPS']) &&
+           $_SERVER['HTTPS'] !== 'off';
 
-require_once 'config/Database.php';
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'secure' => $isHttps,
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+
+require_once __DIR__ . '/config/session.php';
+
+require_once __DIR__ . '/config/Database.php';
 
 // Jika sudah login, langsung ke halaman utama cd /c/xampp/htdocs/LatihanPHP/oop-mahasiswa
 if (isset($_SESSION['user_id'])) {
