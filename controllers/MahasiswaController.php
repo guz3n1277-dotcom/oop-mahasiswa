@@ -135,27 +135,30 @@ class MahasiswaController
                 $pesan = 'NIM sudah digunakan mahasiswa lain.';
             }
 
+            
             // Simpan data
             else {
                 $idBaru = $this->mahasiswa->tambah(
-                $nim,
-                $nama,
-                $alamat,
-                $fakultas
-            );
-
-            if ($idBaru !== false) {
-                $this->catatAktivitas(
-                    'MAHASISWA_TAMBAH ID=' . $idBaru
+                    $nim,
+                    $nama,
+                    $alamat,
+                    $fakultas
                 );
 
-                header('Location: index.php');
-                exit();
-            }
+                if ($idBaru !== false) {
+                    $this->catatAktivitas(
+                        'MAHASISWA_TAMBAH ID=' . $idBaru
+                    );
 
+                    header('Location: index.php');
+                    exit();
+                }
+
+                $this->catatAktivitas('MAHASISWA_TAMBAH_GAGAL');
 
                 $pesan = 'Data gagal ditambahkan.';
             }
+
         }
 
         return [
@@ -259,9 +262,12 @@ class MahasiswaController
 
                 if ($berhasil) {
                     $this->catatAktivitas('MAHASISWA_EDIT ID=' . $id);
+
                     header('Location: index.php');
                     exit();
                 }
+
+                $this->catatAktivitas('MAHASISWA_EDIT_GAGAL ID=' . $id);
 
                 $pesan = 'Data gagal diperbarui.';
             }
@@ -319,12 +325,16 @@ class MahasiswaController
             exit();
         }
 
+        
         // Hapus data
         if ($this->mahasiswa->hapus($id)) {
             $this->catatAktivitas('MAHASISWA_HAPUS ID=' . $id);
+
             header('Location: index.php');
             exit();
         }
+
+        $this->catatAktivitas('MAHASISWA_HAPUS_GAGAL ID=' . $id);
 
         http_response_code(500);
         exit('Data mahasiswa gagal dihapus.');

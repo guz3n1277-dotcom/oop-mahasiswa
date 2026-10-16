@@ -30,6 +30,10 @@ if (empty($_SESSION['csrf_token'])) {
 
 <p>
     <a href="tambah.php">Tambah Mahasiswa</a>
+
+    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+        | <a href="logs.php">Log Keamanan</a>
+    <?php endif; ?>
 </p>
 
 <form method="GET" action="index.php">
