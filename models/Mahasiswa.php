@@ -18,18 +18,39 @@ class Mahasiswa
 
     public function tambah($nim, $nama, $alamat, $fakultas)
     {
-        $query = "INSERT INTO mahasiswa (nim, nama, alamat, fakultas) VALUES(?, ?, ?, ?)";
+        $query = "INSERT INTO mahasiswa (nim, nama, alamat, fakultas)
+                VALUES (?, ?, ?, ?)";
 
         try {
             $stmt = mysqli_prepare($this->koneksi, $query);
 
-            mysqli_stmt_bind_param($stmt,"ssss", $nim,$nama,$alamat, $fakultas);
-            return mysqli_stmt_execute($stmt);
-        
+            if (!$stmt) {
+                return false;
+            }
+
+            mysqli_stmt_bind_param(
+                $stmt,
+                "ssss",
+                $nim,
+                $nama,
+                $alamat,
+                $fakultas
+            );
+
+            $berhasil = mysqli_stmt_execute($stmt);
+
+            if ($berhasil) {
+                $idBaru = mysqli_insert_id($this->koneksi);
+                mysqli_stmt_close($stmt);
+                return $idBaru;
+            }
+
+            mysqli_stmt_close($stmt);
+            return false;
+
         } catch (mysqli_sql_exception $e) {
             return false;
         }
-        
     }
 
     public function ubah($id, $nim, $nama, $alamat, $fakultas)

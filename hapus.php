@@ -1,14 +1,21 @@
 <?php
-require_once __DIR__ . '/config/admin.php';
 
-include "config/Database.php";
-include "models/Mahasiswa.php";
-include "controllers/MahasiswaController.php";
+require_once __DIR__ . '/config/session.php';
+require_once __DIR__ . '/config/admin.php';
+require_once __DIR__ . '/config/Database.php';
+require_once __DIR__ . '/models/Mahasiswa.php';
+require_once __DIR__ . '/models/SecurityLog.php';
+require_once __DIR__ . '/controllers/MahasiswaController.php';
 
 $database = new Database();
 $koneksi = $database->connect();
 
 $mahasiswa = new Mahasiswa($koneksi);
-$controller = new MahasiswaController($mahasiswa);
+$securityLog = new SecurityLog($koneksi);
+
+$controller = new MahasiswaController(
+    $mahasiswa,
+    $securityLog
+);
 
 $controller->hapus();

@@ -3,10 +3,34 @@
 class MahasiswaController
 {
     private $mahasiswa;
+    private $securityLog;
 
-    public function __construct($mahasiswa)
+    public function __construct($mahasiswa, ?SecurityLog $securityLog = null)
     {
         $this->mahasiswa = $mahasiswa;
+        $this->securityLog = $securityLog;
+    }
+
+    // Mencatat aktivitas pengguna yang sedang login.
+    private function catatAktivitas(string $aktivitas): void
+    {
+        if ($this->securityLog === null) {
+            error_log('SecurityLog belum diinisialisasi.');
+            return;
+        }
+
+        $username = $_SESSION['username'] ?? '';
+
+        if (!is_string($username) || $username === '') {
+            error_log('Username sesi tidak tersedia untuk security log.');
+            return;
+        }
+
+        try {
+            $this->securityLog->catat($username, $aktivitas);
+        } catch (Throwable $e) {
+            error_log('Pencatatan aktivitas keamanan gagal.');
+        }
     }
 
     // Menampilkan data, pencarian, dan pagination
@@ -113,17 +137,22 @@ class MahasiswaController
 
             // Simpan data
             else {
-                $berhasil = $this->mahasiswa->tambah(
-                    $nim,
-                    $nama,
-                    $alamat,
-                    $fakultas
+                $idBaru = $this->mahasiswa->tambah(
+                $nim,
+                $nama,
+                $alamat,
+                $fakultas
+            );
+
+            if ($idBaru !== false) {
+                $this->catatAktivitas(
+                    'MAHASISWA_TAMBAH ID=' . $idBaru
                 );
 
-                if ($berhasil) {
-                    header('Location: index.php');
-                    exit();
-                }
+                header('Location: index.php');
+                exit();
+            }
+
 
                 $pesan = 'Data gagal ditambahkan.';
             }
@@ -229,6 +258,7 @@ class MahasiswaController
                 );
 
                 if ($berhasil) {
+                    $this->catatAktivitas('MAHASISWA_EDIT ID=' . $id);
                     header('Location: index.php');
                     exit();
                 }
@@ -291,6 +321,7 @@ class MahasiswaController
 
         // Hapus data
         if ($this->mahasiswa->hapus($id)) {
+            $this->catatAktivitas('MAHASISWA_HAPUS ID=' . $id);
             header('Location: index.php');
             exit();
         }
