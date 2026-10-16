@@ -23,7 +23,13 @@ $aktivitasValid = [
     '',
     'login_berhasil',
     'login_gagal',
-    'logout'
+    'logout',
+    'MAHASISWA_TAMBAH',
+    'MAHASISWA_EDIT',
+    'MAHASISWA_HAPUS',
+    'MAHASISWA_TAMBAH_GAGAL',
+    'MAHASISWA_EDIT_GAGAL',
+    'MAHASISWA_HAPUS_GAGAL'
 ];
 
 if (!in_array($activity, $aktivitasValid, true)) {
@@ -45,7 +51,14 @@ if (!$stmt) {
 }
 
 $cariUsername = '%' . $username . '%';
-$cariAktivitas = $activity === '' ? '%' : $activity;
+
+if ($activity === '') {
+    $cariAktivitas = '%';
+} elseif (strpos($activity, 'MAHASISWA_') === 0) {
+    $cariAktivitas = $activity . '%';
+} else {
+    $cariAktivitas = $activity;
+}
 
 mysqli_stmt_bind_param(
     $stmt,
