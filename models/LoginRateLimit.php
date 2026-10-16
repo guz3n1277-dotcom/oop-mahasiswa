@@ -26,9 +26,7 @@ class LoginRateLimit
         $stmt = mysqli_prepare($this->koneksi, $sql);
 
         if (!$stmt) {
-            throw new RuntimeException(
-                'Gagal memeriksa pembatasan login.'
-            );
+            throw new RuntimeException('Gagal memeriksa pembatasan login.');
         }
 
         mysqli_stmt_bind_param($stmt, 'ss', $username, $ip);
@@ -53,18 +51,16 @@ class LoginRateLimit
         }
 
         $sekarang = time();
-        $batas = strtotime($data['locked_until'] ?? '');
+        $awal = strtotime($data['first_attempt_at']);
+        $batas = $data['locked_until'] !== null
+            ? strtotime($data['locked_until'])
+            : false;
 
         if ($batas !== false && $batas > $sekarang) {
             return true;
         }
 
-        $awal = strtotime($data['first_attempt_at']);
-
-        if (
-            $awal === false ||
-            $sekarang - $awal >= $this->periodeDetik
-        ) {
+        if ($awal === false || ($sekarang - $awal) >= $this->periodeDetik) {
             $this->reset($username, $ip);
         }
 
@@ -75,82 +71,94 @@ class LoginRateLimit
         string $username,
         string $ip
     ): void {
-        $data = $this->ambilData($username, $ip);
-        $sekarang = time();
+        mysqli_begin_transaction($this->koneksi);
 
-        if (!$data) {
+        try {
+            // Pastikan baris tersedia. Indeks unik menangani
+            // kemungkinan baris dibuat oleh permintaan lain.
             $sql = "INSERT INTO login_attempts
                     (username, ip_address, attempts, first_attempt_at)
-                    VALUES (?, ?, 1, NOW())";
+                    VALUES (?, ?, 0, NOW())
+                    ON DUPLICATE KEY UPDATE id = id";
 
             $stmt = mysqli_prepare($this->koneksi, $sql);
 
             if (!$stmt) {
-                throw new RuntimeException(
-                    'Gagal mencatat percobaan login.'
-                );
+                throw new RuntimeException('Gagal menyiapkan data login.');
             }
 
             mysqli_stmt_bind_param($stmt, 'ss', $username, $ip);
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
 
-            return;
-        }
+            // Kunci baris selama proses baca dan pembaruan.
+            $sql = "SELECT attempts, first_attempt_at
+                    FROM login_attempts
+                    WHERE username = ? AND ip_address = ?
+                    FOR UPDATE";
 
-        $awal = strtotime($data['first_attempt_at']);
+            $stmt = mysqli_prepare($this->koneksi, $sql);
 
-        if (
-            $awal === false ||
-            $sekarang - $awal >= $this->periodeDetik
-        ) {
-            $attempts = 1;
-            $lockedUntil = null;
+            if (!$stmt) {
+                throw new RuntimeException('Gagal membaca data login.');
+            }
+
+            mysqli_stmt_bind_param($stmt, 'ss', $username, $ip);
+            mysqli_stmt_execute($stmt);
+
+            $hasil = mysqli_stmt_get_result($stmt);
+            $data = mysqli_fetch_assoc($hasil);
+
+            mysqli_stmt_close($stmt);
+
+            if (!$data) {
+                throw new RuntimeException('Data percobaan login tidak ditemukan.');
+            }
+
+            $sekarang = time();
+            $awal = strtotime($data['first_attempt_at']);
+
+            if ($awal === false || ($sekarang - $awal) >= $this->periodeDetik) {
+                $attempts = 1;
+                $firstAttempt = date('Y-m-d H:i:s', $sekarang);
+                $lockedUntil = null;
+            } else {
+                $attempts = (int) $data['attempts'] + 1;
+                $firstAttempt = $data['first_attempt_at'];
+
+                $lockedUntil = $attempts >= $this->maksPercobaan
+                    ? date('Y-m-d H:i:s', $sekarang + $this->blokirDetik)
+                    : null;
+            }
+
             $sql = "UPDATE login_attempts
-                    SET attempts = ?, first_attempt_at = NOW(),
-                        locked_until = NULL
+                    SET attempts = ?, first_attempt_at = ?, locked_until = ?
                     WHERE username = ? AND ip_address = ?";
-        } else {
-            $attempts = (int) $data['attempts'] + 1;
 
-            $lockedUntil = $attempts >= $this->maksPercobaan
-                ? date('Y-m-d H:i:s', $sekarang + $this->blokirDetik)
-                : null;
+            $stmt = mysqli_prepare($this->koneksi, $sql);
 
-            $sql = "UPDATE login_attempts
-                    SET attempts = ?, locked_until = ?
-                    WHERE username = ? AND ip_address = ?";
-        }
+            if (!$stmt) {
+                throw new RuntimeException('Gagal memperbarui data login.');
+            }
 
-        $stmt = mysqli_prepare($this->koneksi, $sql);
-
-        if (!$stmt) {
-            throw new RuntimeException(
-                'Gagal memperbarui percobaan login.'
-            );
-        }
-
-        if ($awal === false || $sekarang - $awal >= $this->periodeDetik) {
             mysqli_stmt_bind_param(
                 $stmt,
-                'iss',
+                'issss',
                 $attempts,
-                $username,
-                $ip
-            );
-        } else {
-            mysqli_stmt_bind_param(
-                $stmt,
-                'isss',
-                $attempts,
+                $firstAttempt,
                 $lockedUntil,
                 $username,
                 $ip
             );
-        }
 
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+
+            mysqli_commit($this->koneksi);
+        } catch (Throwable $e) {
+            mysqli_rollback($this->koneksi);
+            throw $e;
+        }
     }
 
     public function reset(
@@ -163,9 +171,7 @@ class LoginRateLimit
         $stmt = mysqli_prepare($this->koneksi, $sql);
 
         if (!$stmt) {
-            throw new RuntimeException(
-                'Gagal mereset percobaan login.'
-            );
+            throw new RuntimeException('Gagal mereset percobaan login.');
         }
 
         mysqli_stmt_bind_param($stmt, 'ss', $username, $ip);
