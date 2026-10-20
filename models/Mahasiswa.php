@@ -153,7 +153,7 @@ class Mahasiswa
 
                 if (!$stmt) {
                     error_log('Gagal menyiapkan pemeriksaan NIM.');
-                    return false;
+                    return null;
                 }
 
                 mysqli_stmt_bind_param($stmt, "si", $nim, $kecualiId);
@@ -163,7 +163,7 @@ class Mahasiswa
 
                 if (!$stmt) {
                     error_log('Gagal menyiapkan pemeriksaan NIM.');
-                    return false;
+                    return null;
                 }
 
                 mysqli_stmt_bind_param($stmt, "s", $nim);
@@ -171,18 +171,23 @@ class Mahasiswa
 
             if (!mysqli_stmt_execute($stmt)) {
                 mysqli_stmt_close($stmt);
-                return false;
+                return null;
             }
 
             $hasil = mysqli_stmt_get_result($stmt);
-            $ada = $hasil && mysqli_num_rows($hasil) > 0;
 
+            if (!$hasil) {
+                mysqli_stmt_close($stmt);
+                return null;
+            }
+
+            $ada = mysqli_num_rows($hasil) > 0;
             mysqli_stmt_close($stmt);
 
             return $ada;
         } catch (mysqli_sql_exception $e) {
             error_log('Gagal memeriksa NIM mahasiswa.');
-            return false;
+            return null;
         }
     }
 

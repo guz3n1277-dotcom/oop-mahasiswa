@@ -131,7 +131,10 @@ class MahasiswaController
             }
 
             // Validasi NIM duplikat
-            elseif ($this->mahasiswa->nimAda($nim)) {
+            elseif (($nimAda = $this->mahasiswa->nimAda($nim)) === null) {
+                $pesan = 'Pemeriksaan NIM gagal. Silakan coba lagi.';
+            }
+            elseif ($nimAda) {
                 $pesan = 'NIM sudah digunakan mahasiswa lain.';
             }
 
@@ -246,7 +249,10 @@ class MahasiswaController
 
             // NIM boleh sama dengan milik data yang sedang diedit,
             // tetapi tidak boleh sama dengan milik mahasiswa lain.
-            elseif ($this->mahasiswa->nimAda($nim, $id)) {
+            elseif (($nimAda = $this->mahasiswa->nimAda($nim, $id)) === null) {
+                $pesan = 'Pemeriksaan NIM gagal. Silakan coba lagi.';
+            }
+            elseif ($nimAda) {
                 $pesan = 'NIM sudah digunakan mahasiswa lain.';
             }
 
