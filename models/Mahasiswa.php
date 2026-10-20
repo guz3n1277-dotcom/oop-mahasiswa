@@ -11,9 +11,13 @@ class Mahasiswa
 
     public function tampilkanSemua()
     {
-        $query = "SELECT * FROM mahasiswa";
-
-        return mysqli_query($this->koneksi, $query);
+        try {
+            $query = "SELECT * FROM mahasiswa";
+            return mysqli_query($this->koneksi, $query);
+        } catch (mysqli_sql_exception $e) {
+            error_log('Gagal menampilkan seluruh mahasiswa.');
+            return false;
+        }
     }
 
     public function tambah($nim, $nama, $alamat, $fakultas)
@@ -48,9 +52,10 @@ class Mahasiswa
             mysqli_stmt_close($stmt);
             return false;
 
-        } catch (mysqli_sql_exception $e) {
-            return false;
-        }
+            } catch (mysqli_sql_exception $e) {
+                error_log('Gagal menambahkan data mahasiswa.');
+                return false;
+            }
     }
 
     public function ubah($id, $nim, $nama, $alamat, $fakultas)
@@ -215,6 +220,10 @@ public function cari($kataKunci)
         }
 
         $hasil = mysqli_stmt_get_result($stmt);
+        if ($hasil === false) {
+            mysqli_stmt_close($stmt);
+            return false;
+        }
         mysqli_stmt_close($stmt);
 
         return $hasil;

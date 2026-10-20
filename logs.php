@@ -1,4 +1,3 @@
-
 <?php
 
 require_once __DIR__ . '/config/admin.php';
@@ -13,11 +12,13 @@ $activity = $_GET['activity'] ?? '';
 if (!is_string($username)) {
     $username = '';
 }
+
 if (!is_string($activity)) {
     $activity = '';
 }
 
 $username = trim($username);
+$username = mb_substr($username, 0, 50);
 
 $aktivitasValid = [
     '',
@@ -43,32 +44,44 @@ $sql = "SELECT username, activity, ip_address, created_at
         ORDER BY id DESC
         LIMIT 100";
 
-$stmt = mysqli_prepare($koneksi, $sql);
+$stmt = null;
+$hasil = false;
 
-if (!$stmt) {
-    mysqli_close($koneksi);
-    exit('Gagal menyiapkan query log.');
+try {
+    $stmt = mysqli_prepare($koneksi, $sql);
+
+    if (!$stmt) {
+        throw new RuntimeException('Gagal menyiapkan query log.');
+    }
+
+    $cariUsername = '%' . $username . '%';
+
+    if ($activity === '') {
+        $cariAktivitas = '%';
+    } elseif (strpos($activity, 'MAHASISWA_') === 0) {
+        $cariAktivitas = $activity . '%';
+    } else {
+        $cariAktivitas = $activity;
+    }
+
+    mysqli_stmt_bind_param(
+        $stmt,
+        'ss',
+        $cariUsername,
+        $cariAktivitas
+    );
+
+    mysqli_stmt_execute($stmt);
+    $hasil = mysqli_stmt_get_result($stmt);
+
+    if ($hasil === false) {
+        throw new RuntimeException('Gagal mengambil hasil query log.');
+    }
+} catch (Throwable $e) {
+    error_log('Gagal memuat log keamanan: ' . $e->getMessage());
+    http_response_code(500);
+    exit('Log keamanan gagal dimuat. Silakan coba lagi.');
 }
-
-$cariUsername = '%' . $username . '%';
-
-if ($activity === '') {
-    $cariAktivitas = '%';
-} elseif (strpos($activity, 'MAHASISWA_') === 0) {
-    $cariAktivitas = $activity . '%';
-} else {
-    $cariAktivitas = $activity;
-}
-
-mysqli_stmt_bind_param(
-    $stmt,
-    'ss',
-    $cariUsername,
-    $cariAktivitas
-);
-
-mysqli_stmt_execute($stmt);
-$hasil = mysqli_stmt_get_result($stmt);
 
 function aman($nilai): string
 {
@@ -112,6 +125,24 @@ function aman($nilai): string
             </option>
             <option value="logout" <?= $activity === 'logout' ? 'selected' : '' ?>>
                 Logout
+            </option>
+            <option value="MAHASISWA_TAMBAH" <?= $activity === 'MAHASISWA_TAMBAH' ? 'selected' : '' ?>>
+                Tambah mahasiswa
+            </option>
+            <option value="MAHASISWA_EDIT" <?= $activity === 'MAHASISWA_EDIT' ? 'selected' : '' ?>>
+                Edit mahasiswa
+            </option>
+            <option value="MAHASISWA_HAPUS" <?= $activity === 'MAHASISWA_HAPUS' ? 'selected' : '' ?>>
+                Hapus mahasiswa
+            </option>
+            <option value="MAHASISWA_TAMBAH_GAGAL" <?= $activity === 'MAHASISWA_TAMBAH_GAGAL' ? 'selected' : '' ?>>
+                Gagal tambah mahasiswa
+            </option>
+            <option value="MAHASISWA_EDIT_GAGAL" <?= $activity === 'MAHASISWA_EDIT_GAGAL' ? 'selected' : '' ?>>
+                Gagal edit mahasiswa
+            </option>
+            <option value="MAHASISWA_HAPUS_GAGAL" <?= $activity === 'MAHASISWA_HAPUS_GAGAL' ? 'selected' : '' ?>>
+                Gagal hapus mahasiswa
             </option>
         </select>
 

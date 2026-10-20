@@ -9,17 +9,24 @@ class Database
 
     public function connect()
     {
-        $koneksi = mysqli_connect(
-            $this->host,
-            $this->user,
-            $this->password,
-            $this->database
-        );
+        mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-        if (!$koneksi) {
-            die("Koneksi database gagal");
+        try {
+            $koneksi = mysqli_connect(
+                $this->host,
+                $this->user,
+                $this->password,
+                $this->database
+            );
+
+            mysqli_set_charset($koneksi, 'utf8mb4');
+
+            return $koneksi;
+        } catch (mysqli_sql_exception $e) {
+            error_log('Koneksi database gagal: ' . $e->getMessage());
+
+            http_response_code(500);
+            exit('Layanan sedang mengalami gangguan. Silakan coba lagi.');
         }
-
-        return $koneksi;
     }
 }

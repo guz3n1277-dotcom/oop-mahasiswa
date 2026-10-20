@@ -36,12 +36,26 @@ class MahasiswaController
     // Menampilkan data, pencarian, dan pagination
     public function index()
     {
-        $kataKunci = trim($_GET['cari'] ?? '');
+        $kataKunci = $_GET['cari'] ?? '';
+
+        if (!is_string($kataKunci)) {
+            $kataKunci = '';
+        }
+
+        $kataKunci = trim($kataKunci);
+        $kataKunci = mb_substr($kataKunci, 0, 100);
 
         $perHalaman = 5;
         $halaman = max(1, (int) ($_GET['halaman'] ?? 1));
 
         $totalData = $this->mahasiswa->hitungSemua($kataKunci);
+
+        if ($totalData === false) {
+            error_log('Gagal menghitung jumlah data mahasiswa.');
+            http_response_code(500);
+            exit('Gagal memuat data mahasiswa. Silakan coba lagi.');
+        }
+
         $totalHalaman = (int) ceil($totalData / $perHalaman);
 
         if ($totalHalaman > 0 && $halaman > $totalHalaman) {
@@ -55,6 +69,12 @@ class MahasiswaController
             $perHalaman,
             $offset
         );
+
+        if ($data === false) {
+            error_log('Gagal mengambil data halaman mahasiswa.');
+            http_response_code(500);
+            exit('Gagal memuat data mahasiswa. Silakan coba lagi.');
+        }
 
         return [
             'kataKunci'   => $kataKunci,

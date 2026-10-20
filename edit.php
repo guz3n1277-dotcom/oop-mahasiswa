@@ -29,3 +29,4 @@ $pesan = $hasil['pesan'];
 $dataMahasiswa = $hasil['dataMahasiswa'];
 
 include "views/mahasiswa/edit.php";
+$koneksi->close();
