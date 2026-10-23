@@ -622,9 +622,6 @@ $role = $_SESSION['role'] ?? 'user';
                     <p>Kelola dan pantau data mahasiswa yang tersimpan.</p>
                 </div>
 
-                <a href="tambah.php" class="button button-primary">
-                    + Tambah Mahasiswa
-                </a>
             </div>
 
             <div class="summary-card">
