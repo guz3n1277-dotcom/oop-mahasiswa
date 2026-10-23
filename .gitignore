@@ -1,0 +1,32 @@
+
+# File konfigurasi dan rahasia
+.env
+.env.*
+!.env.example
+
+# Dump database dan backup
+*.sql
+!database.sql
+*.sql.gz
+*.dump
+*.bak
+*.backup
+
+# File log
+*.log
+logs/
+
+# File hasil upload pengguna
+uploads/*
+!uploads/.gitkeep
+
+# File editor dan sistem operasi
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# File sementara
+*.tmp
+*.swp
