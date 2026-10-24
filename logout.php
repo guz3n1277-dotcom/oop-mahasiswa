@@ -27,16 +27,9 @@ $username = (string) (
     $_SESSION['username'] ?? 'tidak_diketahui'
 );
 
-// Catat aktivitas logout
-$database = new Database();
-$koneksi = $database->connect();
 
-$securityLog = new SecurityLog($koneksi);
-$securityLog->catat($username, 'logout');
 
-mysqli_close($koneksi);
-
-// Hapus data session
+ // Hapus data session terlebih dahulu
 $_SESSION = [];
 
 // Hapus cookie session
@@ -56,5 +49,27 @@ if (ini_get('session.use_cookies')) {
 // Hancurkan session
 session_destroy();
 
+// Catat aktivitas logout setelah session dihancurkan.
+// Pencatatan bersifat best-effort dan tidak boleh menghalangi logout.
+try {
+    $database = new Database();
+    $koneksi = $database->connectOrNull();
+
+    if ($koneksi instanceof mysqli) {
+        try {
+            $securityLog = new SecurityLog($koneksi);
+
+            if (!$securityLog->catat($username, 'logout')) {
+                error_log('Aktivitas logout gagal dicatat.');
+            }
+        } finally {
+            mysqli_close($koneksi);
+        }
+    }
+} catch (Throwable $e) {
+    error_log('Proses pencatatan logout gagal: ' . $e->getMessage());
+}
+
 header('Location: login.php');
 exit;
+
