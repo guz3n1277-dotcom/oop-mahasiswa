@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS `login_attempts` (
   UNIQUE KEY `unique_login_attempt` (`username`, `ip_address`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+
 -- Catatan:
 -- 1. Skema ini sengaja tidak menyertakan data asli dari database.
 -- 2. Buat akun admin melalui mekanisme yang memakai password_hash() di PHP.
