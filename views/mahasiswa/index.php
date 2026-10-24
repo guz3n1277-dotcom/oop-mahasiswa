@@ -352,6 +352,17 @@ $role = $_SESSION['role'] ?? 'user';
             font-size: 13px;
             vertical-align: middle;
         }
+        
+        /* Kolom fakultas */
+        table th:nth-child(5),
+        table td:nth-child(5) {
+            min-width: 220px;
+        }
+
+        table td:nth-child(5) {
+            white-space: normal;
+            overflow-wrap: break-word;
+        }
 
         tbody tr:hover {
             background: #f8fbff;
@@ -755,22 +766,44 @@ $role = $_SESSION['role'] ?? 'user';
 
                 <div class="table-footer">
                     <div class="pagination-info">
-                        Total <?php echo (int) $totalData; ?> data
-                        &middot;
-                        Halaman <?php echo $totalHalaman > 0 ? (int) $halaman : 0; ?>
-                        dari <?php echo (int) $totalHalaman; ?>
-                    </div>
-
-                    <nav class="pagination" aria-label="Navigasi halaman">
                         <?php
                         $halamanTampil = $totalHalaman > 0 ? (int) $halaman : 0;
                         $urlCari = urlencode($kataKunci);
+                        $jumlahPerHalaman = 5;
+
+                        $awalData = $totalData > 0
+                            ? (($halamanTampil - 1) * $jumlahPerHalaman) + 1
+                            : 0;
+
+                        $akhirData = $totalData > 0
+                            ? min($halamanTampil * $jumlahPerHalaman, $totalData)
+                            : 0;
                         ?>
 
+                        <?php if ($totalData > 0): ?>
+                            Menampilkan <?php echo $awalData; ?>&ndash;<?php echo $akhirData; ?>
+                            dari <?php echo (int) $totalData; ?>
+                            <?php echo $kataKunci !== '' ? 'hasil pencarian' : 'mahasiswa'; ?>
+                        <?php else: ?>
+                            <?php if ($kataKunci !== ''): ?>
+                                Tidak ada data yang cocok dengan pencarian.
+                            <?php else: ?>
+                                Belum ada data mahasiswa.
+                            <?php endif; ?>
+                        <?php endif; ?>
+
+                        <?php if ($totalHalaman > 0): ?>
+                            &middot;
+                            Halaman <?php echo $halamanTampil; ?>
+                            dari <?php echo (int) $totalHalaman; ?>
+                        <?php endif; ?>
+                    </div>
+
+                    <nav class="pagination" aria-label="Navigasi halaman">
                         <?php if ($halamanTampil > 1): ?>
                             <a
                                 class="page-link"
-                                href="?cari=<?php echo $urlCari; ?>&halaman=<?php echo $halamanTampil - 1; ?>"
+                                href="?cari=<?php echo $urlCari; ?>&amp;halaman=<?php echo $halamanTampil - 1; ?>"
                             >
                                 Sebelumnya
                             </a>
@@ -779,7 +812,7 @@ $role = $_SESSION['role'] ?? 'user';
                         <?php for ($i = 1; $i <= $totalHalaman; $i++): ?>
                             <a
                                 class="page-link <?php echo $i === $halamanTampil ? 'current' : ''; ?>"
-                                href="?cari=<?php echo $urlCari; ?>&halaman=<?php echo $i; ?>"
+                                href="?cari=<?php echo $urlCari; ?>&amp;halaman=<?php echo $i; ?>"
                                 <?php echo $i === $halamanTampil ? 'aria-current="page"' : ''; ?>
                             >
                                 <?php echo $i; ?>
@@ -789,7 +822,7 @@ $role = $_SESSION['role'] ?? 'user';
                         <?php if ($halamanTampil > 0 && $halamanTampil < $totalHalaman): ?>
                             <a
                                 class="page-link"
-                                href="?cari=<?php echo $urlCari; ?>&halaman=<?php echo $halamanTampil + 1; ?>"
+                                href="?cari=<?php echo $urlCari; ?>&amp;halaman=<?php echo $halamanTampil + 1; ?>"
                             >
                                 Berikutnya
                             </a>
