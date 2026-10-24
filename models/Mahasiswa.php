@@ -200,7 +200,10 @@ class Mahasiswa
 public function cari($kataKunci)
 {
     $query = "SELECT * FROM mahasiswa
-              WHERE nim LIKE ? OR nama LIKE ?";
+              WHERE nim LIKE ?
+                 OR nama LIKE ?
+                 OR fakultas LIKE ?
+              ORDER BY id ASC";
 
     try {
         $stmt = mysqli_prepare($this->koneksi, $query);
@@ -212,23 +215,33 @@ public function cari($kataKunci)
 
         $pola = "%" . $kataKunci . "%";
 
-        mysqli_stmt_bind_param($stmt, "ss", $pola, $pola);
+        mysqli_stmt_bind_param(
+            $stmt,
+            "sss",
+            $pola,
+            $pola,
+            $pola
+        );
 
         if (!mysqli_stmt_execute($stmt)) {
+            error_log('Gagal menjalankan pencarian mahasiswa.');
             mysqli_stmt_close($stmt);
             return false;
         }
 
         $hasil = mysqli_stmt_get_result($stmt);
+
         if ($hasil === false) {
+            error_log('Gagal mengambil hasil pencarian mahasiswa.');
             mysqli_stmt_close($stmt);
             return false;
         }
+
         mysqli_stmt_close($stmt);
 
         return $hasil;
     } catch (mysqli_sql_exception $e) {
-        error_log('Gagal mencari mahasiswa.');
+        error_log('Terjadi kesalahan saat mencari mahasiswa.');
         return false;
     }
 }
@@ -241,7 +254,10 @@ public function tampilkanHalaman($kataKunci, $limit, $offset)
     try {
         if ($kataKunci !== '') {
             $query = "SELECT * FROM mahasiswa
-                      WHERE nim LIKE ? OR nama LIKE ?
+                      WHERE nim LIKE ?
+                         OR nama LIKE ?
+                         OR fakultas LIKE ?
+                      ORDER BY id ASC
                       LIMIT ? OFFSET ?";
 
             $stmt = mysqli_prepare($this->koneksi, $query);
@@ -255,7 +271,8 @@ public function tampilkanHalaman($kataKunci, $limit, $offset)
 
             mysqli_stmt_bind_param(
                 $stmt,
-                "ssii",
+                "sssii",
+                $pola,
                 $pola,
                 $pola,
                 $limit,
@@ -263,6 +280,7 @@ public function tampilkanHalaman($kataKunci, $limit, $offset)
             );
         } else {
             $query = "SELECT * FROM mahasiswa
+                      ORDER BY id ASC
                       LIMIT ? OFFSET ?";
 
             $stmt = mysqli_prepare($this->koneksi, $query);
@@ -281,16 +299,24 @@ public function tampilkanHalaman($kataKunci, $limit, $offset)
         }
 
         if (!mysqli_stmt_execute($stmt)) {
+            error_log('Gagal menjalankan query halaman mahasiswa.');
             mysqli_stmt_close($stmt);
             return false;
         }
 
         $hasil = mysqli_stmt_get_result($stmt);
+
+        if ($hasil === false) {
+            error_log('Gagal mengambil data halaman mahasiswa.');
+            mysqli_stmt_close($stmt);
+            return false;
+        }
+
         mysqli_stmt_close($stmt);
 
         return $hasil;
     } catch (mysqli_sql_exception $e) {
-        error_log('Gagal menampilkan halaman mahasiswa.');
+        error_log('Terjadi kesalahan saat mengambil halaman mahasiswa.');
         return false;
     }
 }
@@ -301,40 +327,58 @@ public function hitungSemua($kataKunci)
         if ($kataKunci !== '') {
             $query = "SELECT COUNT(*) AS total
                       FROM mahasiswa
-                      WHERE nim LIKE ? OR nama LIKE ?";
+                      WHERE nim LIKE ?
+                         OR nama LIKE ?
+                         OR fakultas LIKE ?";
 
             $stmt = mysqli_prepare($this->koneksi, $query);
 
             if (!$stmt) {
-                error_log('Gagal menyiapkan hitung mahasiswa.');
+                error_log('Gagal menyiapkan query hitung mahasiswa.');
                 return false;
             }
 
             $pola = "%" . $kataKunci . "%";
-            mysqli_stmt_bind_param($stmt, "ss", $pola, $pola);
+
+            mysqli_stmt_bind_param(
+                $stmt,
+                "sss",
+                $pola,
+                $pola,
+                $pola
+            );
         } else {
             $query = "SELECT COUNT(*) AS total FROM mahasiswa";
+
             $stmt = mysqli_prepare($this->koneksi, $query);
 
             if (!$stmt) {
-                error_log('Gagal menyiapkan hitung mahasiswa.');
+                error_log('Gagal menyiapkan query hitung mahasiswa.');
                 return false;
             }
         }
 
         if (!mysqli_stmt_execute($stmt)) {
+            error_log('Gagal menghitung data mahasiswa.');
             mysqli_stmt_close($stmt);
             return false;
         }
 
         $hasil = mysqli_stmt_get_result($stmt);
-        $baris = $hasil ? mysqli_fetch_assoc($hasil) : null;
+
+        if ($hasil === false) {
+            error_log('Gagal mengambil jumlah data mahasiswa.');
+            mysqli_stmt_close($stmt);
+            return false;
+        }
+
+        $baris = mysqli_fetch_assoc($hasil);
 
         mysqli_stmt_close($stmt);
 
         return $baris ? (int) $baris['total'] : false;
     } catch (mysqli_sql_exception $e) {
-        error_log('Gagal menghitung mahasiswa.');
+        error_log('Terjadi kesalahan saat menghitung mahasiswa.');
         return false;
     }
 }

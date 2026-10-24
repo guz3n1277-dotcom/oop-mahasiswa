@@ -647,7 +647,7 @@ $role = $_SESSION['role'] ?? 'user';
                             class="search-input"
                             type="text"
                             name="cari"
-                            placeholder="Cari NIM atau nama..."
+                            placeholder="Cari NIM, nama, atau fakultas..."
                             value="<?php echo htmlspecialchars($kataKunci, ENT_QUOTES, 'UTF-8'); ?>"
                         >
 
