@@ -581,6 +581,12 @@ $role = $_SESSION['role'] ?? 'user';
             <?php endif; ?>
         </nav>
 
+        <?php if ($role === 'admin'): ?>
+            <a href="export.php" class="button button-primary">
+                Ekspor CSV
+            </a>
+        <?php endif; ?>
+
         <div class="sidebar-note">
             Dashboard pengelolaan data mahasiswa.
         </div>

@@ -340,5 +340,21 @@ public function hitungSemua($kataKunci)
 }
 
 
+public function ambilSemuaUntukEkspor()
+{
+    $query = "SELECT nim, nama, alamat, fakultas
+              FROM mahasiswa
+              ORDER BY id ASC";
+
+    try {
+        $hasil = mysqli_query($this->koneksi, $query);
+        return $hasil;
+    } catch (mysqli_sql_exception $e) {
+        error_log('Gagal mengambil data untuk ekspor CSV.');
+        return false;
+    }
+}
+
+
 }
 
