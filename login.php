@@ -41,80 +41,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (strlen($username) > 50) {
                 $pesan = 'Username tidak valid.';
             } else {
-                $database = new Database();
-                $koneksi = $database->connect();
+                
+                $koneksi = null;
+                $stmt = null;
 
-                $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-                $rateLimit = new LoginRateLimit($koneksi);
+                try {
+                    $database = new Database();
+                    $koneksi = $database->connect();
 
-                // Periksa pembatasan sebelum memeriksa password
-                if ($rateLimit->diblokir($username, $ip)) {
-                    $pesan = 'Terlalu banyak percobaan login. Coba lagi setelah 15 menit.';
-                } else {
-                    $stmt = mysqli_prepare(
-                        $koneksi,
-                        'SELECT id, username, password, role
-                         FROM users
-                         WHERE username = ?
-                         LIMIT 1'
-                    );
+                    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                    $rateLimit = new LoginRateLimit($koneksi);
 
-                    if (!$stmt) {
-                        mysqli_close($koneksi);
-                        error_log('Query login gagal disiapkan.');
-                        http_response_code(500);
-                        exit('Terjadi kesalahan sistem. Silakan coba lagi.');
-                    }
+                    // Periksa pembatasan sebelum memeriksa password.
+                    if ($rateLimit->diblokir($username, $ip)) {
+                        $pesan = 'Terlalu banyak percobaan login. Coba lagi setelah 15 menit.';
+                    } else {
+                        $sql = 'SELECT id, username, password, role
+                                FROM users
+                                WHERE username = ?
+                                LIMIT 1';
 
-                    mysqli_stmt_bind_param($stmt, 's', $username);
-                    mysqli_stmt_execute($stmt);
+                        $stmt = mysqli_prepare($koneksi, $sql);
 
-                    $hasil = mysqli_stmt_get_result($stmt);
-                    $user = mysqli_fetch_assoc($hasil);
+                        mysqli_stmt_bind_param($stmt, 's', $username);
+                        mysqli_stmt_execute($stmt);
 
-                    if (
-                        $user &&
-                        password_verify($password, $user['password'])
-                    ) {
-                        // Reset hitungan kegagalan
-                        $rateLimit->reset($username, $ip);
-
-                        // Perbarui session ID setelah login berhasil
-                        session_regenerate_id(true);
-
-                        $_SESSION['user_id'] = (int) $user['id'];
-                        $_SESSION['username'] = $user['username'];
-                        $_SESSION['role'] = $user['role'];
-                        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-
-                        $securityLog = new SecurityLog($koneksi);
-                        $securityLog->catat(
-                            $user['username'],
-                            'login_berhasil'
-                        );
+                        $hasil = mysqli_stmt_get_result($stmt);
+                        $user = mysqli_fetch_assoc($hasil);
 
                         mysqli_stmt_close($stmt);
-                        mysqli_close($koneksi);
+                        $stmt = null;
 
-                        header('Location: index.php');
-                        exit;
+                        if ($user && password_verify($password, $user['password'])) {
+                            // Reset hitungan kegagalan sebelum membuat sesi login.
+                            $rateLimit->reset($username, $ip);
+
+                            session_regenerate_id(true);
+
+                            $_SESSION['user_id'] = (int) $user['id'];
+                            $_SESSION['username'] = $user['username'];
+                            $_SESSION['role'] = $user['role'];
+                            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
+                            // Kegagalan pencatatan log ditangani oleh SecurityLog.
+                            $securityLog = new SecurityLog($koneksi);
+                            $securityLog->catat(
+                                $user['username'],
+                                'login_berhasil'
+                            );
+
+                            mysqli_close($koneksi);
+                            $koneksi = null;
+
+                            header('Location: index.php');
+                            exit;
+                        }
+
+                        // Login gagal: simpan percobaan dan catat aktivitas.
+                        $rateLimit->gagal($username, $ip);
+
+                        $securityLog = new SecurityLog($koneksi);
+                        $securityLog->catat($username, 'login_gagal');
+
+                        $pesan = 'Username atau password salah.';
+                    }
+                } catch (Throwable $e) {
+                    // Simpan detail teknis hanya di log server.
+                    error_log(
+                        'Proses login gagal: ' .
+                        get_class($e) . ': ' .
+                        $e->getMessage()
+                    );
+
+                    $pesan = 'Layanan sedang mengalami gangguan. Silakan coba lagi.';
+                } finally {
+                    if ($stmt instanceof mysqli_stmt) {
+                        try {
+                            mysqli_stmt_close($stmt);
+                        } catch (Throwable $e) {
+                            error_log('Gagal menutup statement login.');
+                        }
                     }
 
-                    // Login gagal: catat percobaan
-                    $rateLimit->gagal($username, $ip);
-
-                    $securityLog = new SecurityLog($koneksi);
-                    $securityLog->catat($username, 'login_gagal');
-
-                    $pesan = 'Username atau password salah.';
-
-                    mysqli_stmt_close($stmt);
+                    if ($koneksi instanceof mysqli) {
+                        try {
+                            mysqli_close($koneksi);
+                        } catch (Throwable $e) {
+                            error_log('Gagal menutup koneksi database login.');
+                        }
+                    }
                 }
-
-                mysqli_close($koneksi);
             }
         }
     }
+
 }
 
 $csrfToken = htmlspecialchars(

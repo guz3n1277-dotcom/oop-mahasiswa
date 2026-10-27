@@ -71,9 +71,10 @@ class LoginRateLimit
         string $username,
         string $ip
     ): void {
-        mysqli_begin_transaction($this->koneksi);
+        
 
         try {
+            mysqli_begin_transaction($this->koneksi);
             // Pastikan baris tersedia. Indeks unik menangani
             // kemungkinan baris dibuat oleh permintaan lain.
             $sql = "INSERT INTO login_attempts
@@ -156,7 +157,14 @@ class LoginRateLimit
 
             mysqli_commit($this->koneksi);
         } catch (Throwable $e) {
-            mysqli_rollback($this->koneksi);
+            try {
+                mysqli_rollback($this->koneksi);
+            } catch (Throwable $rollbackError) {
+                error_log(
+                    'Rollback transaksi rate limit gagal: ' .
+                    $rollbackError->getMessage()
+                );
+            }
             throw $e;
         }
     }

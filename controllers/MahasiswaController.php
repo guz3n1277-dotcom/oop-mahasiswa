@@ -86,6 +86,7 @@ class MahasiswaController
     }
 
     // Menambah data mahasiswa
+
     public function tambah()
     {
         $pesan = '';
@@ -141,13 +142,28 @@ class MahasiswaController
             }
 
             // Validasi nama minimal 3 karakter
-            elseif (mb_strlen($nama) < 3) {
+            elseif (mb_strlen($nama, 'UTF-8') < 3) {
                 $pesan = 'Nama minimal 3 karakter.';
             }
 
             // Validasi alamat minimal 3 karakter
-            elseif (mb_strlen($alamat) < 3) {
+            elseif (mb_strlen($alamat, 'UTF-8') < 3) {
                 $pesan = 'Alamat minimal 3 karakter.';
+            }
+
+            // Validasi panjang nama
+            elseif (mb_strlen($nama, 'UTF-8') > 25) {
+                $pesan = 'Nama maksimal 25 karakter.';
+            }
+
+            // Validasi panjang alamat
+            elseif (mb_strlen($alamat, 'UTF-8') > 40) {
+                $pesan = 'Alamat maksimal 40 karakter.';
+            }
+
+            // Validasi panjang fakultas
+            elseif (mb_strlen($fakultas, 'UTF-8') > 100) {
+                $pesan = 'Fakultas maksimal 100 karakter.';
             }
 
             // Validasi NIM duplikat
@@ -158,28 +174,44 @@ class MahasiswaController
                 $pesan = 'NIM sudah digunakan mahasiswa lain.';
             }
 
-            
-            // Simpan data
+            // Simpan data setelah seluruh validasi lolos         
             else {
-                $idBaru = $this->mahasiswa->tambah(
-                    $nim,
-                    $nama,
-                    $alamat,
-                    $fakultas
+                // Proses foto setelah seluruh validasi data lolos.
+                $fotoMahasiswa = new FotoMahasiswa();
+
+                $hasilFoto = $fotoMahasiswa->simpan(
+                    $_FILES['foto'] ?? null
                 );
 
-                if ($idBaru !== false) {
-                    $this->catatAktivitas(
-                        'MAHASISWA_TAMBAH ID=' . $idBaru
+                if ($hasilFoto['error'] !== null) {
+                    $pesan = $hasilFoto['error'];
+                } else {
+                    $namaFoto = $hasilFoto['nama'];
+
+                    $idBaru = $this->mahasiswa->tambah(
+                        $nim,
+                        $nama,
+                        $alamat,
+                        $fakultas,
+                        $namaFoto
                     );
 
-                    header('Location: index.php');
-                    exit();
+                    if ($idBaru !== false) {
+                        $this->catatAktivitas(
+                            'MAHASISWA_TAMBAH ID=' . $idBaru
+                        );
+
+                        header('Location: index.php');
+                        exit();
+                    }
+
+                    // Hapus foto jika penyimpanan data gagal.
+                    $fotoMahasiswa->hapus($namaFoto);
+
+                    $this->catatAktivitas('MAHASISWA_TAMBAH_GAGAL');
+
+                    $pesan = 'Data gagal ditambahkan.';
                 }
-
-                $this->catatAktivitas('MAHASISWA_TAMBAH_GAGAL');
-
-                $pesan = 'Data gagal ditambahkan.';
             }
 
         }
@@ -188,6 +220,7 @@ class MahasiswaController
             'pesan' => $pesan
         ];
     }
+
 
     // Mengubah data mahasiswa
     public function edit()
@@ -267,6 +300,19 @@ class MahasiswaController
                 $pesan = 'Alamat minimal 3 karakter.';
             }
 
+            elseif (mb_strlen($nama, 'UTF-8') > 25) {
+                $pesan = 'Nama maksimal 25 karakter.';
+            }
+
+            elseif (mb_strlen($alamat, 'UTF-8') > 40) {
+                $pesan = 'Alamat maksimal 40 karakter.';
+            }
+
+            elseif (mb_strlen($fakultas, 'UTF-8') > 100) {
+                $pesan = 'Fakultas maksimal 100 karakter.';
+            }
+
+
             // NIM boleh sama dengan milik data yang sedang diedit,
             // tetapi tidak boleh sama dengan milik mahasiswa lain.
             elseif (($nimAda = $this->mahasiswa->nimAda($nim, $id)) === null) {
@@ -278,25 +324,62 @@ class MahasiswaController
 
             // Simpan perubahan
             else {
-                $berhasil = $this->mahasiswa->ubah(
-                    $id,
-                    $nim,
-                    $nama,
-                    $alamat,
-                    $fakultas
+                $fotoMahasiswa = new FotoMahasiswa();
+
+                // Simpan foto baru jika pengguna memilihnya.
+                $hasilFoto = $fotoMahasiswa->simpan(
+                    $_FILES['foto'] ?? null
                 );
 
-                if ($berhasil) {
-                    $this->catatAktivitas('MAHASISWA_EDIT ID=' . $id);
+                if ($hasilFoto['error'] !== null) {
+                    $pesan = $hasilFoto['error'];
+                } else {
+                    $fotoBaru = $hasilFoto['nama'];
+                    $fotoLama = $dataMahasiswa['foto'] ?? null;
 
-                    header('Location: index.php');
-                    exit();
+                    // Jika tidak ada foto baru, parameter null akan
+                    // mempertahankan foto lama di database.
+                    $berhasil = $this->mahasiswa->ubah(
+                        $id,
+                        $nim,
+                        $nama,
+                        $alamat,
+                        $fakultas,
+                        $fotoBaru
+                    );
+
+                    if ($berhasil) {
+                        // Hapus foto lama hanya setelah database berhasil
+                        // diperbarui dan jika memang ada foto pengganti.
+                        if (
+                            $fotoBaru !== null &&
+                            $fotoLama !== null &&
+                            $fotoLama !== ''
+                        ) {
+                            $fotoMahasiswa->hapus($fotoLama);
+                        }
+
+                        $this->catatAktivitas(
+                            'MAHASISWA_EDIT ID=' . $id
+                        );
+
+                        header('Location: index.php');
+                        exit();
+                    }
+
+                    // Database gagal diperbarui: bersihkan foto baru.
+                    if ($fotoBaru !== null) {
+                        $fotoMahasiswa->hapus($fotoBaru);
+                    }
+
+                    $this->catatAktivitas(
+                        'MAHASISWA_EDIT_GAGAL ID=' . $id
+                    );
+
+                    $pesan = 'Data gagal diperbarui.';
                 }
-
-                $this->catatAktivitas('MAHASISWA_EDIT_GAGAL ID=' . $id);
-
-                $pesan = 'Data gagal diperbarui.';
             }
+
 
             // Pertahankan input ketika validasi gagal
             $dataMahasiswa = array_merge($dataMahasiswa, [
@@ -314,6 +397,7 @@ class MahasiswaController
     }
 
     // Menghapus data mahasiswa dengan metode POST dan token CSRF
+
     public function hapus()
     {
         // Pastikan request menggunakan POST
@@ -351,18 +435,29 @@ class MahasiswaController
             exit();
         }
 
-        
-        // Hapus data
+        // Simpan nama foto sebelum data database dihapus
+        $fotoLama = $dataMahasiswa['foto'] ?? null;
+
+        // Hapus data mahasiswa dari database
         if ($this->mahasiswa->hapus($id)) {
+
+            // Hapus foto hanya jika data berhasil dihapus
+            require_once __DIR__ . '/../helpers/FotoMahasiswa.php';
+
+            $fotoMahasiswa = new FotoMahasiswa();
+            $fotoMahasiswa->hapus($fotoLama);
+
             $this->catatAktivitas('MAHASISWA_HAPUS ID=' . $id);
 
             header('Location: index.php');
             exit();
         }
 
+        // Catat jika penghapusan database gagal
         $this->catatAktivitas('MAHASISWA_HAPUS_GAGAL ID=' . $id);
 
         http_response_code(500);
         exit('Data mahasiswa gagal dihapus.');
     }
+
 }

@@ -20,10 +20,12 @@ class Mahasiswa
         }
     }
 
-    public function tambah($nim, $nama, $alamat, $fakultas)
+   
+    public function tambah($nim, $nama, $alamat, $fakultas, $foto = null)
     {
-        $query = "INSERT INTO mahasiswa (nim, nama, alamat, fakultas)
-                VALUES (?, ?, ?, ?)";
+        $query = "INSERT INTO mahasiswa
+                (nim, nama, alamat, fakultas, foto)
+                VALUES (?, ?, ?, ?, ?)";
 
         try {
             $stmt = mysqli_prepare($this->koneksi, $query);
@@ -34,11 +36,12 @@ class Mahasiswa
 
             mysqli_stmt_bind_param(
                 $stmt,
-                "ssss",
+                "sssss",
                 $nim,
                 $nama,
                 $alamat,
-                $fakultas
+                $fakultas,
+                $foto
             );
 
             $berhasil = mysqli_stmt_execute($stmt);
@@ -46,23 +49,39 @@ class Mahasiswa
             if ($berhasil) {
                 $idBaru = mysqli_insert_id($this->koneksi);
                 mysqli_stmt_close($stmt);
+
                 return $idBaru;
             }
 
             mysqli_stmt_close($stmt);
+
             return false;
 
-            } catch (mysqli_sql_exception $e) {
-                error_log('Gagal menambahkan data mahasiswa.');
-                return false;
-            }
+        } catch (mysqli_sql_exception $e) {
+            error_log('Gagal menambahkan data mahasiswa.');
+
+            return false;
+        }
     }
 
-    public function ubah($id, $nim, $nama, $alamat, $fakultas)
+    public function ubah($id, $nim, $nama, $alamat, $fakultas, $foto = null)
     {
-        $query = "UPDATE mahasiswa
-                SET nim = ?, nama = ?, alamat = ?, fakultas = ?
-                WHERE id = ?";
+        // Jika foto baru tidak diberikan, jangan ubah kolom foto.
+        if ($foto === null) {
+            $query = "UPDATE mahasiswa
+                    SET nim = ?, nama = ?, alamat = ?, fakultas = ?
+                    WHERE id = ?";
+
+            $parameter = "ssssi";
+            $nilai = [$nim, $nama, $alamat, $fakultas, $id];
+        } else {
+            $query = "UPDATE mahasiswa
+                    SET nim = ?, nama = ?, alamat = ?, fakultas = ?, foto = ?
+                    WHERE id = ?";
+
+            $parameter = "sssssi";
+            $nilai = [$nim, $nama, $alamat, $fakultas, $foto, $id];
+        }
 
         try {
             $stmt = mysqli_prepare($this->koneksi, $query);
@@ -74,23 +93,21 @@ class Mahasiswa
 
             mysqli_stmt_bind_param(
                 $stmt,
-                "ssssi",
-                $nim,
-                $nama,
-                $alamat,
-                $fakultas,
-                $id
+                $parameter,
+                ...$nilai
             );
 
             $berhasil = mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
 
             return $berhasil;
+
         } catch (mysqli_sql_exception $e) {
             error_log('Gagal mengubah data mahasiswa.');
             return false;
         }
     }
+
 
     public function ambilById($id)
     {
@@ -151,9 +168,12 @@ class Mahasiswa
 
     public function nimAda($nim, $kecualiId = null)
     {
+        $stmt = null;
+
         try {
             if ($kecualiId !== null) {
-                $query = "SELECT id FROM mahasiswa WHERE nim = ? AND id != ?";
+                $query = "SELECT id FROM mahasiswa
+                        WHERE nim = ? AND id != ?";
                 $stmt = mysqli_prepare($this->koneksi, $query);
 
                 if (!$stmt) {
@@ -175,26 +195,30 @@ class Mahasiswa
             }
 
             if (!mysqli_stmt_execute($stmt)) {
-                mysqli_stmt_close($stmt);
+                error_log('Gagal menjalankan pemeriksaan NIM.');
                 return null;
             }
 
             $hasil = mysqli_stmt_get_result($stmt);
 
-            if (!$hasil) {
-                mysqli_stmt_close($stmt);
+            if ($hasil === false) {
+                error_log('Gagal mengambil hasil pemeriksaan NIM.');
                 return null;
             }
 
-            $ada = mysqli_num_rows($hasil) > 0;
-            mysqli_stmt_close($stmt);
+            return mysqli_num_rows($hasil) > 0;
 
-            return $ada;
-        } catch (mysqli_sql_exception $e) {
-            error_log('Gagal memeriksa NIM mahasiswa.');
+        } catch (Throwable $e) {
+            error_log('Terjadi kesalahan saat memeriksa NIM.');
             return null;
+
+        } finally {
+            if ($stmt !== null) {
+                mysqli_stmt_close($stmt);
+            }
         }
     }
+
 
 
 public function cari($kataKunci)

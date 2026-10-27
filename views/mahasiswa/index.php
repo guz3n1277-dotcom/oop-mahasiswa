@@ -354,12 +354,12 @@ $role = $_SESSION['role'] ?? 'user';
         }
         
         /* Kolom fakultas */
-        table th:nth-child(5),
-        table td:nth-child(5) {
+        table th:nth-child(6),
+        table td:nth-child(6) {
             min-width: 220px;
         }
 
-        table td:nth-child(5) {
+        table td:nth-child(6) {
             white-space: normal;
             overflow-wrap: break-word;
         }
@@ -375,6 +375,31 @@ $role = $_SESSION['role'] ?? 'user';
 
         .student-id {
             color: #64748b;
+        }
+
+        /* Foto mahasiswa */
+        .student-photo {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            display: block;
+        }
+
+        .photo-placeholder {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px dashed #cbd5e1;
+            border-radius: 10px;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 10px;
+            text-align: center;
         }
 
         .action-buttons {
@@ -567,6 +592,7 @@ $role = $_SESSION['role'] ?? 'user';
                 padding: 20px 12px;
             }
         }
+
     </style>
 </head>
 
@@ -677,6 +703,7 @@ $role = $_SESSION['role'] ?? 'user';
                         <thead>
                             <tr>
                                 <th>ID</th>
+                                <th>Foto</th>
                                 <th>NIM</th>
                                 <th>Nama</th>
                                 <th>Alamat</th>
@@ -696,6 +723,28 @@ $role = $_SESSION['role'] ?? 'user';
                             <tr>
                                 <td class="student-id">
                                     <?php echo $id; ?>
+                                </td>
+                                
+                                <td>
+                                    <?php
+                                    $foto = $row['foto'] ?? null;
+
+                                    $fotoValid = is_string($foto)
+                                        && preg_match('/\A[a-f0-9]{32}\.(jpg|png)\z/', $foto);
+
+                                    $pathFoto = __DIR__ . '/../../uploads/' . ($fotoValid ? $foto : '');
+                                    ?>
+
+                                    <?php if ($fotoValid && is_file($pathFoto)): ?>
+                                        <img
+                                            class="student-photo"
+                                            src="<?php echo 'uploads/' . rawurlencode($foto); ?>"
+                                            alt="Foto mahasiswa"
+                                            loading="lazy"
+                                        >
+                                    <?php else: ?>
+                                        <div class="photo-placeholder">Tanpa foto</div>
+                                    <?php endif; ?>
                                 </td>
 
                                 <td>
@@ -754,7 +803,7 @@ $role = $_SESSION['role'] ?? 'user';
 
                         <?php if (!$adaData): ?>
                             <tr>
-                                <td colspan="6" class="empty-state">
+                                <td colspan="7" class="empty-state">
                                     <strong>Data tidak ditemukan</strong>
                                     Coba kata kunci lain atau tambahkan data mahasiswa baru.
                                 </td>

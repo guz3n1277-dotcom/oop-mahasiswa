@@ -1,6 +1,11 @@
 
 <?php
 $idMahasiswa = (int) ($dataMahasiswa['id'] ?? 0);
+$fotoSaatIni = $dataMahasiswa['foto'] ?? null;
+
+// Nama file harus sesuai pola yang dibuat helper FotoMahasiswa.
+$fotoValid = is_string($fotoSaatIni)
+    && preg_match('/\A[a-f0-9]{32}\.(jpg|png)\z/', $fotoSaatIni);
 
 $csrfToken = htmlspecialchars(
     $_SESSION['csrf_token'] ?? '',
@@ -458,6 +463,29 @@ $daftarFakultas = [
                 padding: 20px 12px;
             }
         }
+
+        .photo-preview {
+            width: 140px;
+            height: 140px;
+            object-fit: cover;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #f8fafc;
+        }
+
+        .photo-empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 140px;
+            height: 140px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 12px;
+            text-align: center;
+        }
     </style>
 </head>
 
@@ -578,6 +606,7 @@ $daftarFakultas = [
                     <form
                         method="POST"
                         action="edit.php?id=<?php echo $idMahasiswa; ?>"
+                        enctype="multipart/form-data"
                     >
 
                         <input
@@ -674,6 +703,43 @@ $daftarFakultas = [
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label>Foto Mahasiswa Saat Ini</label>
+
+                                <?php if ($fotoValid): ?>
+                                    <img
+                                        class="photo-preview"
+                                        src="<?php echo 'uploads/' . rawurlencode($fotoSaatIni); ?>"
+                                        alt="Foto mahasiswa"
+                                    >
+                                <?php else: ?>
+                                    <div class="photo-empty">
+                                        Belum ada foto
+                                    </div>
+                                <?php endif; ?>
+
+                                <small class="help-text">
+                                    Foto saat ini akan dipertahankan jika kamu tidak memilih foto baru.
+                                </small>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label for="foto">Ganti Foto Mahasiswa (Opsional)</label>
+
+                                <input
+                                    class="form-control"
+                                    type="file"
+                                    id="foto"
+                                    name="foto"
+                                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                >
+
+                                <small class="help-text">
+                                    Format JPG, JPEG, atau PNG. Ukuran maksimal 2 MB.
+                                    Kosongkan jika tidak ingin mengganti foto.
+                                </small>
                             </div>
 
                         </div>

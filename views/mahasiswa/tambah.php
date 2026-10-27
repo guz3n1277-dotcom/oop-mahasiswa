@@ -566,7 +566,7 @@ $daftarFakultas = [
                         </div>
                     <?php endif; ?>
 
-                    <form method="POST" action="tambah.php">
+                    <form method="POST" action="tambah.php" enctype="multipart/form-data">
 
                         <input
                             type="hidden"
@@ -663,7 +663,23 @@ $daftarFakultas = [
                                     <?php endforeach; ?>
                                 </select>
                             </div>
+                            
+                            <div class="form-group full-width">
+                                <label for="foto">Foto Mahasiswa (Opsional)</label>
 
+                                <input
+                                    class="form-control"
+                                    type="file"
+                                    id="foto"
+                                    name="foto"
+                                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                >
+
+                                <small class="help-text">
+                                    Format yang diperbolehkan: JPG, JPEG, atau PNG.
+                                    Ukuran maksimal 2 MB. Foto boleh dikosongkan.
+                                </small>
+                            </div>
                         </div>
 
                         <div class="form-actions">
