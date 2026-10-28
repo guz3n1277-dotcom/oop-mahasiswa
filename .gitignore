@@ -18,6 +18,7 @@ logs/
 
 # File hasil upload pengguna
 uploads/*
+!uploads/.htaccess
 !uploads/.gitkeep
 
 # File editor dan sistem operasi

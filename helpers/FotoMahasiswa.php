@@ -4,22 +4,17 @@
 class FotoMahasiswa
 {
     private const MAKS_UKURAN = 2 * 1024 * 1024;
+    private const MAKS_DIMENSI = 6000;
+    private const MAKS_PIXEL = 10000000;
 
     public function simpan(?array $file): array
     {
-        // Foto bersifat opsional.
         if ($file === null || !isset($file['error'])) {
-            return [
-                'nama' => null,
-                'error' => null
-            ];
+            return ['nama' => null, 'error' => null];
         }
 
         if ($file['error'] === UPLOAD_ERR_NO_FILE) {
-            return [
-                'nama' => null,
-                'error' => null
-            ];
+            return ['nama' => null, 'error' => null];
         }
 
         if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -32,7 +27,7 @@ class FotoMahasiswa
         if (
             !isset($file['tmp_name'], $file['size']) ||
             !is_string($file['tmp_name']) ||
-            !is_int($file['size']) && !is_numeric($file['size'])
+            !is_numeric($file['size'])
         ) {
             return [
                 'nama' => null,
@@ -45,7 +40,7 @@ class FotoMahasiswa
         if ($ukuran <= 0 || $ukuran > self::MAKS_UKURAN) {
             return [
                 'nama' => null,
-                'error' => 'Ukuran foto harus lebih dari 0 dan maksimal 2 MB.'
+                'error' => 'Ukuran foto maksimal 2 MB.'
             ];
         }
 
@@ -56,7 +51,15 @@ class FotoMahasiswa
             ];
         }
 
-        // Periksa tipe berdasarkan isi file, bukan nama file.
+        if (!extension_loaded('gd')) {
+            error_log('Ekstensi GD tidak aktif.');
+
+            return [
+                'nama' => null,
+                'error' => 'Pemrosesan foto tidak tersedia.'
+            ];
+        }
+
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime = $finfo->file($file['tmp_name']);
 
@@ -72,12 +75,12 @@ class FotoMahasiswa
             ];
         }
 
-        // Pastikan file dapat dikenali sebagai gambar.
-        $infoGambar = @getimagesize($file['tmp_name']);
+        $info = @getimagesize($file['tmp_name']);
 
         if (
-            $infoGambar === false ||
-            ($infoGambar['mime'] ?? '') !== $mime
+            $info === false ||
+            ($info['mime'] ?? '') !== $mime ||
+            !isset($info[0], $info[1])
         ) {
             return [
                 'nama' => null,
@@ -85,7 +88,24 @@ class FotoMahasiswa
             ];
         }
 
-        $folder = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'uploads';
+        $lebar = (int) $info[0];
+        $tinggi = (int) $info[1];
+
+        if (
+            $lebar <= 0 ||
+            $tinggi <= 0 ||
+            $lebar > self::MAKS_DIMENSI ||
+            $tinggi > self::MAKS_DIMENSI ||
+            $lebar > intdiv(self::MAKS_PIXEL, $tinggi)
+        ) {
+            return [
+                'nama' => null,
+                'error' => 'Dimensi foto terlalu besar.'
+            ];
+        }
+
+        $folder = dirname(__DIR__)
+            . DIRECTORY_SEPARATOR . 'uploads';
 
         if (
             !is_dir($folder) &&
@@ -100,42 +120,79 @@ class FotoMahasiswa
             ];
         }
 
-        // Nama acak agar nama asli dan ekstensi kiriman pengguna
-        // tidak digunakan sebagai nama file penyimpanan.
+        $gambar = false;
+        $hasil = false;
+        $nama = null;
+        $tujuan = null;
+
         try {
+            if ($mime === 'image/jpeg') {
+                $gambar = @imagecreatefromjpeg($file['tmp_name']);
+            } elseif ($mime === 'image/png') {
+                $gambar = @imagecreatefrompng($file['tmp_name']);
+            }
+
+            if ($gambar === false) {
+                return [
+                    'nama' => null,
+                    'error' => 'Foto tidak dapat diproses.'
+                ];
+            }
+
+            // Buat nama acak; nama asli tidak digunakan.
             $nama = bin2hex(random_bytes(16))
-                . '.'
-                . $tipeValid[$mime];
+                . '.' . $tipeValid[$mime];
+
+            $tujuan = $folder . DIRECTORY_SEPARATOR . $nama;
+
+            // Simpan ulang gambar, bukan salin file asli.
+            if ($mime === 'image/jpeg') {
+                $hasil = @imagejpeg($gambar, $tujuan, 90);
+            } else {
+                // Pertahankan transparansi PNG.
+                imagealphablending($gambar, false);
+                imagesavealpha($gambar, true);
+                $hasil = @imagepng($gambar, $tujuan, 6);
+            }
+
+            if (!$hasil || !is_file($tujuan) || filesize($tujuan) === 0) {
+                if (is_file($tujuan) && !is_link($tujuan)) {
+                    @unlink($tujuan);
+                }
+
+                error_log('Gagal menyimpan hasil pemrosesan foto.');
+
+                return [
+                    'nama' => null,
+                    'error' => 'Foto gagal disimpan. Silakan coba lagi.'
+                ];
+            }
+
+            return ['nama' => $nama, 'error' => null];
         } catch (Throwable $e) {
-            error_log('Gagal membuat nama file foto.');
+            if (
+                $tujuan !== null &&
+                is_file($tujuan) &&
+                !is_link($tujuan)
+            ) {
+                @unlink($tujuan);
+            }
+
+            error_log('Terjadi kesalahan saat memproses foto.');
 
             return [
                 'nama' => null,
                 'error' => 'Foto gagal diproses. Silakan coba lagi.'
             ];
+        } finally {
+            if ($gambar !== false) {
+                imagedestroy($gambar);
+            }
         }
-
-        $tujuan = $folder . DIRECTORY_SEPARATOR . $nama;
-
-        if (!move_uploaded_file($file['tmp_name'], $tujuan)) {
-            error_log('Gagal memindahkan file foto ke folder unggahan.');
-
-            return [
-                'nama' => null,
-                'error' => 'Foto gagal disimpan. Silakan coba lagi.'
-            ];
-        }
-
-        return [
-            'nama' => $nama,
-            'error' => null
-        ];
     }
-
 
     public function hapus(?string $nama): void
     {
-        // Pastikan nama file sesuai format yang dibuat aplikasi.
         if (
             $nama === null ||
             !preg_match('/\A[a-f0-9]{32}\.(jpg|png)\z/', $nama)
@@ -143,15 +200,15 @@ class FotoMahasiswa
             return;
         }
 
-        $folder = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'uploads';
+        $folder = dirname(__DIR__)
+            . DIRECTORY_SEPARATOR . 'uploads';
+
         $path = $folder . DIRECTORY_SEPARATOR . $nama;
 
-        // Hapus hanya file foto yang dituju, bukan symbolic link.
         if (is_file($path) && !is_link($path)) {
             if (!unlink($path)) {
-                error_log('Gagal menghapus file foto mahasiswa: ' . $nama);
+                error_log('Gagal menghapus foto mahasiswa: ' . $nama);
             }
         }
     }
-
 }
